@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "id": "mono-events",
+    "name": "Mono Events",
+    "dark": false,
+    "description": "Interface monocromática; cor entra só onde há seleção (menta) ou destaque (lavanda)."
+  },
+  "colors": {
+    "primary": "#0A0A0A",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#D0F2E9",
+    "onPrimaryContainer": "#0B3B30",
+    "secondary": "#3D6F62",
+    "secondaryContainer": "#E4F7F1",
+    "accent": "#8B5CF6",
+    "accentContainer": "#F5E8FF",
+    "background": "#EBEBEB",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#F9F9F9",
+    "outline": "#E2E2E2",
+    "outlineVariant": "#F0F0F0",
+    "textPrimary": "#0A0A0A",
+    "textSecondary": "#5C5C5C",
+    "textTertiary": "#868686",
+    "success": "#16A34A",
+    "warning": "#D97706",
+    "danger": "#DC2626",
+    "info": "#2563EB"
+  },
+  "shapes": {
+    "baseRadiusDp": 16,
+    "pillButtons": true
+  },
+  "typography": { "scale": 1.0 },
+  "spacing": { "density": "default", "scale": 1.0 },
+  "elevation": { "style": "light", "shadowAlpha": 0.05 },
+  "motion": { "durationScale": 1.0, "reduceMotion": false },
+  "source": {
+    "kind": "screenshot",
+    "reference": "Design 1 — descoberta de eventos (grade de categorias, detalhe e lista)",
+    "notes": [
+      "background #EBEBEB é a cor dominante do print (36,6% dos pixels).",
+      "primaryContainer #D0F2E9 amostrada no card de categoria 'Travel' selecionado.",
+      "accentContainer #F5E8FF amostrada no card do evento em destaque da lista.",
+      "primary #0A0A0A amostrada no botão-pílula de fechar e no chip 'travel' ativo.",
+      "shadowAlpha reduzido para 0.05: o design separa cards por contraste de cinza, quase sem sombra.",
+      "accent #8B5CF6 inferido — o print só mostra o container lavanda, não a cor sólida."
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "id": "indigo-ticket",
+    "name": "Indigo Ticket",
+    "dark": false,
+    "description": "Uma cor de marca índigo carregando todas as ações, fundo quase branco, cantos moderados."
+  },
+  "colors": {
+    "primary": "#6255F4",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#EEEDFE",
+    "onPrimaryContainer": "#241C86",
+    "secondary": "#2F2A55",
+    "secondaryContainer": "#E7E6F2",
+    "accent": "#A197FF",
+    "accentContainer": "#FAF3FF",
+    "background": "#F8F8F8",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E6E8EC",
+    "outline": "#E4E4E9",
+    "outlineVariant": "#EFEFF2",
+    "textPrimary": "#111114",
+    "textSecondary": "#5A5C66",
+    "textTertiary": "#9295A1",
+    "success": "#16A34A",
+    "warning": "#D97706",
+    "danger": "#DC2626",
+    "info": "#2563EB"
+  },
+  "shapes": {
+    "baseRadiusDp": 12,
+    "buttonRadiusDp": 16,
+    "pillButtons": false
+  },
+  "typography": { "scale": 1.0 },
+  "spacing": { "density": "default", "scale": 1.0 },
+  "elevation": { "style": "light" },
+  "motion": { "durationScale": 1.0, "reduceMotion": false },
+  "source": {
+    "kind": "screenshot",
+    "reference": "Design 3 — fluxo de seleção de assento e checkout de ingresso",
+    "notes": [
+      "primary #6255F4 amostrada nos botões 'Confirm' e 'Pay Now' (1,0% dos pixels da imagem).",
+      "accent #A197FF amostrada no assento selecionado (D17/D18).",
+      "surfaceVariant #E6E8EC amostrada no assento disponível.",
+      "accentContainer #FAF3FF amostrada no chip de preço do cabeçalho.",
+      "Escala de status (success/warning/danger/info) inferida: o print não mostra estados de erro."
+    ]
+  }
+}

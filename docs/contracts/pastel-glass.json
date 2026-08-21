@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "id": "pastel-glass",
+    "name": "Pastel Glass",
+    "dark": false,
+    "description": "Fundo lilás, cards muito arredondados, paleta pastel de apoio e ações em pílula preta."
+  },
+  "colors": {
+    "primary": "#12111A",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#E4E1FB",
+    "onPrimaryContainer": "#241F52",
+    "secondary": "#5CC9C9",
+    "secondaryContainer": "#D5EBF1",
+    "accent": "#8079E8",
+    "accentContainer": "#E4E1FB",
+    "background": "#F4F5FC",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#F0EDF6",
+    "outline": "#E6E3F0",
+    "outlineVariant": "#F1EEF8",
+    "textPrimary": "#15141F",
+    "textSecondary": "#5D5A70",
+    "textTertiary": "#908DA3",
+    "success": "#16A34A",
+    "warning": "#D97706",
+    "danger": "#DC2626",
+    "info": "#2563EB"
+  },
+  "shapes": {
+    "baseRadiusDp": 20,
+    "pillButtons": true
+  },
+  "typography": { "scale": 1.0 },
+  "spacing": { "density": "comfortable", "scale": 1.0 },
+  "elevation": { "style": "light", "shadowAlpha": 0.08 },
+  "motion": { "durationScale": 1.0, "reduceMotion": false },
+  "source": {
+    "kind": "screenshot",
+    "reference": "Design 2 — app de viagens (home, busca, resultados e bilhete)",
+    "notes": [
+      "background #F4F5FC é o tom dominante das telas (6,4% dos pixels).",
+      "secondary #5CC9C9 amostrada na ilustração do trem e nos chips ativos.",
+      "accent #8079E8 amostrada no voucher e no banner de desconto.",
+      "secondaryContainer #D5EBF1 amostrada nos cards de categoria (Trains/Boats).",
+      "primary #12111A amostrada nos botões 'Search' e 'See Details'.",
+      "densidade 'comfortable' escolhida pela folga vertical entre blocos no print."
+    ]
+  }
+}
