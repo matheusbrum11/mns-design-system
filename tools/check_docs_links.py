@@ -19,7 +19,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-IGNORAR = ("build/", ".gradle/", ".git/", "node_modules/")
+# `.claude/worktrees/` guarda cópias do próprio repositório: percorrê-lo
+# duplicaria a contagem e verificaria os mesmos arquivos duas vezes.
+IGNORAR = ("build/", ".gradle/", ".git/", "node_modules/", ".claude/worktrees/")
 LINK = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
 FENCE = re.compile(r"^\s*(```|~~~)")
 
