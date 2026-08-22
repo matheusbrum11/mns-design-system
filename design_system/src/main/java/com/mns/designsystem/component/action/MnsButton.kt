@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -151,24 +152,28 @@ public fun MnsButton(
             borderWidth = 0.dp
             borderColor = Color.Transparent
         }
+
         MnsButtonVariant.SECONDARY -> {
             targetContainer = colors.primaryContainer
             contentColor = colors.onPrimaryContainer
             borderWidth = 0.dp
             borderColor = Color.Transparent
         }
+
         MnsButtonVariant.OUTLINED -> {
             targetContainer = if (pressed) colors.surfaceVariant else Color.Transparent
             contentColor = colors.primary
             borderWidth = borders.thin
             borderColor = colors.outline
         }
+
         MnsButtonVariant.TEXT -> {
             targetContainer = if (pressed) colors.surfaceVariant else Color.Transparent
             contentColor = colors.primary
             borderWidth = 0.dp
             borderColor = Color.Transparent
         }
+
         MnsButtonVariant.DANGER -> {
             targetContainer = colors.danger
             contentColor = colors.onDanger
@@ -195,24 +200,20 @@ public fun MnsButton(
         borderWidth = borderWidth,
         borderColor = borderColor,
         elevation = MnsTheme.elevation.level0,
-        // Passamos sempre o onClick e controlamos por `enabled`: assim o nó
-        // continua existindo na árvore de semântica e é anunciado como
-        // "desabilitado" em vez de simplesmente não ser clicável — o que, para
-        // um leitor de tela, é a diferença entre "não pode agora" e "não existe".
         onClick = onClick,
         enabled = active,
         role = Role.Button,
         interactionSource = interactionSource,
     ) {
         Row(
-            // `fillMaxWidth()` só quando pedido. Aplicá-lo sempre fazia o botão
-            // consumir toda a largura oferecida pelo pai mesmo com
-            // `fillMaxWidth = false` — o que esmagava qualquer irmão com
-            // `weight(1f)` ao lado dele (o caso do MnsSectionHeader).
             modifier = Modifier
+                .fillMaxSize()
                 .let { if (fillMaxWidth) it.fillMaxWidth() else it }
                 .padding(horizontal = horizontalPadding),
-            horizontalArrangement = Arrangement.spacedBy(spacing.buttonIconGap, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(
+                spacing.buttonIconGap,
+                Alignment.CenterHorizontally
+            ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             when {
@@ -223,6 +224,7 @@ public fun MnsButton(
                     color = contentColor,
                     trackColor = contentColor.copy(alpha = MnsTheme.opacity.faint),
                 )
+
                 leadingIcon != null -> MnsIcon(
                     imageVector = leadingIcon,
                     contentDescription = null,
@@ -282,17 +284,24 @@ public fun MnsIconButton(
         MnsButtonVariant.PRIMARY -> {
             container = colors.primary; contentColor = colors.onPrimary; borderWidth = 0.dp
         }
+
         MnsButtonVariant.SECONDARY -> {
-            container = colors.primaryContainer; contentColor = colors.onPrimaryContainer; borderWidth = 0.dp
+            container = colors.primaryContainer; contentColor =
+                colors.onPrimaryContainer; borderWidth = 0.dp
         }
+
         MnsButtonVariant.OUTLINED -> {
-            container = Color.Transparent; contentColor = colors.onSurface; borderWidth = borders.thin
+            container = Color.Transparent; contentColor = colors.onSurface; borderWidth =
+                borders.thin
         }
+
         MnsButtonVariant.TEXT -> {
             container = Color.Transparent; contentColor = colors.onSurface; borderWidth = 0.dp
         }
+
         MnsButtonVariant.DANGER -> {
-            container = colors.dangerContainer; contentColor = colors.onDangerContainer; borderWidth = 0.dp
+            container = colors.dangerContainer; contentColor =
+                colors.onDangerContainer; borderWidth = 0.dp
         }
     }
 
