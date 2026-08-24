@@ -1,0 +1,123 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  MNS Design System — Version Catalog
+#  Fonte única de verdade para versões. Nunca declare versões hard-coded
+#  dentro de um build.gradle.kts de módulo.
+# ─────────────────────────────────────────────────────────────────────────────
+[versions]
+agp = "8.9.1"
+kotlin = "2.1.10"
+kover = "0.9.1"
+# Publicação no Maven Central via Central Portal (upload + release automático,
+# assinatura PGP e jars de sources/javadoc). Substitui o maven-publish manual.
+#
+# Presa em 0.34.x de propósito: a 0.35 exige Gradle 8.13 e a 0.36/0.37 exigem
+# Gradle 9 + AGP 8.13 + Kotlin 2.2. Esta é a última linha compatível com a
+# toolchain atual (Gradle 8.11.1 / AGP 8.9.1 / Kotlin 2.1.10). Subir o plugin
+# exige subir a toolchain junto — ver docs/ci-cd.md.
+vanniktechPublish = "0.34.0"
+
+# SDK
+compileSdk = "35"
+minSdk = "24"
+targetSdk = "35"
+minSdkBenchmark = "28"
+
+# AndroidX
+coreKtx = "1.15.0"
+lifecycle = "2.8.7"
+activityCompose = "1.9.3"
+navigationCompose = "2.8.5"
+composeBom = "2024.12.01"
+
+# Kotlin ecosystem
+kotlinxSerialization = "1.7.3"
+kotlinxCoroutines = "1.9.0"
+
+# Terceiros
+zxing = "3.5.3"
+# Carregamento de imagem remota. Coil 2.x é a linha Android/Compose: estável
+# desde 2024, com OkHttp embutido. Coil 3.x (multiplataforma) é o caminho de
+# atualização, mas exige artefato de rede separado — fica para quando a
+# toolchain subir. Ver docs/architecture.md.
+coil = "2.7.0"
+
+# Testes
+junit = "4.13.2"
+androidxTestCore = "1.6.1"
+androidxTestExtJunit = "1.2.1"
+androidxTestRunner = "1.6.2"
+androidxTestRules = "1.6.1"
+espresso = "3.6.1"
+robolectric = "4.14.1"
+truth = "1.4.4"
+turbine = "1.2.0"
+mockk = "1.13.13"
+
+# Benchmark
+benchmarkMacro = "1.3.3"
+uiautomator = "2.3.0"
+profileinstaller = "1.4.1"
+
+[libraries]
+# ── AndroidX base ────────────────────────────────────────────────────────────
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+
+# ── Compose (via BOM) ────────────────────────────────────────────────────────
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-ui-text = { module = "androidx.compose.ui:ui-text" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-ui-util = { module = "androidx.compose.ui:ui-util" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+compose-animation = { module = "androidx.compose.animation:animation" }
+
+# ── Kotlin ───────────────────────────────────────────────────────────────────
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+
+# ── Terceiros ────────────────────────────────────────────────────────────────
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+
+# ── Testes ───────────────────────────────────────────────────────────────────
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTestCore" }
+androidx-test-core-ktx = { module = "androidx.test:core-ktx", version.ref = "androidxTestCore" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+androidx-test-rules = { module = "androidx.test:rules", version.ref = "androidxTestRules" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+truth = { module = "com.google.truth:truth", version.ref = "truth" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+
+# ── Benchmark ────────────────────────────────────────────────────────────────
+benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmarkMacro" }
+benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", version.ref = "benchmarkMacro" }
+uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechPublish" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmarkMacro" }

@@ -1,0 +1,145 @@
+name: CI
+
+# Integração contínua: roda em todo pull request para `main` e em todo push
+# direto na própria `main`. É o portão que o merge precisa atravessar.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call:        # reaproveitado pelo release.yml
+  workflow_dispatch:
+
+# `github.workflow` entra no grupo de propósito: em workflow reutilizável ele
+# resolve para o nome do workflow CHAMADOR. Sem isso, um push em main dispara
+# ci.yml direto e release.yml (que chama ci.yml), as duas execuções caem no
+# mesmo grupo e uma cancela a outra — quando a cancelada é a do release, o job
+# `publicar` nunca roda e a versão não é publicada, sem erro visível.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
+
+jobs:
+  qualidade:
+    name: Lint · Testes · Cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ── 1. Documentação em dia ───────────────────────────────────────────
+      # Roda antes dos testes de propósito: é a verificação mais rápida e a
+      # que mais costuma pegar quem mexeu no KDoc e esqueceu de regerar.
+      - name: Verificar documentação gerada
+        run: python3 tools/generate_component_docs.py --check
+
+      - name: Verificar links da documentação
+        run: python3 tools/check_docs_links.py
+
+      # ── 2. Android Lint ──────────────────────────────────────────────────
+      - name: Android Lint (design_system)
+        run: ./gradlew :design_system:lintRelease --stacktrace
+
+      - name: Android Lint (app_demo)
+        run: ./gradlew :app_demo:lintDebug --stacktrace
+
+      # ── 3. Testes ────────────────────────────────────────────────────────
+      - name: Testes de integração (design_system)
+        run: ./gradlew :design_system:testDebugUnitTest --stacktrace
+
+      - name: Testes de integração (app_demo)
+        run: ./gradlew :app_demo:testDebugUnitTest --stacktrace
+
+      # ── 4. Cobertura (régua de 90%) ──────────────────────────────────────
+      - name: Verificar cobertura mínima
+        run: ./gradlew :design_system:koverVerify --stacktrace
+
+      - name: Gerar relatório de cobertura
+        if: always()
+        run: ./gradlew :design_system:koverXmlReportDefault :design_system:koverHtmlReportDefault
+
+      # ── 5. Build ─────────────────────────────────────────────────────────
+      - name: Build da biblioteca
+        run: ./gradlew :design_system:assembleRelease --stacktrace
+
+      - name: Build do app de demonstração
+        run: ./gradlew :app_demo:assembleDebug --stacktrace
+
+      # Validação offline do empacotamento: publica no repositório Maven local
+      # e confere que POM, sources e javadoc saíram. A versão é forçada para
+      # `-SNAPSHOT` porque o plugin só exige assinatura PGP fora de snapshots —
+      # assim o passo roda em qualquer PR, sem credenciais e sem tocar a rede.
+      - name: Validar empacotamento Maven (offline)
+        run: |
+          ./gradlew :design_system:publishToMavenLocal \
+            -PVERSION_NAME=0.0.0-ci-SNAPSHOT --stacktrace
+
+          DIR=~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-ci-SNAPSHOT
+          echo "Artefatos gerados:"
+          find "$DIR" -type f | sed 's|^|  |'
+
+          for sufixo in ".pom" "-sources.jar" "-javadoc.jar" ".aar"; do
+            if ! ls "$DIR"/*"$sufixo" >/dev/null 2>&1; then
+              echo "::error::Artefato ausente: *$sufixo"
+              exit 1
+            fi
+          done
+
+          if ! grep -q "<distribution>repo</distribution>" "$DIR"/*.pom; then
+            echo "::error::POM sem <distribution>repo</distribution> na licença."
+            exit 1
+          fi
+
+      # ── Artefatos ────────────────────────────────────────────────────────
+      - name: Publicar relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-de-teste
+          path: |
+            design_system/build/reports/tests/
+            app_demo/build/reports/tests/
+          retention-days: 14
+
+      - name: Publicar relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: design_system/build/reports/kover/
+          retention-days: 14
+
+      - name: Publicar resultados do lint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-de-lint
+          path: |
+            design_system/build/reports/lint-results-*.html
+            design_system/build/reports/lint-results-*.sarif
+            app_demo/build/reports/lint-results-*.html
+          retention-days: 14

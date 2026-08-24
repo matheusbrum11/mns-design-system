@@ -1,0 +1,143 @@
+name: Release
+
+# Entrega contínua: publica o artefato no Maven Central quando um merge entra
+# em `main`. A publicação só acontece depois de a bateria completa de qualidade
+# passar de novo — nada é publicado com base apenas no status do PR.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.github/**'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Executa tudo sem publicar de verdade'
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
+
+jobs:
+  # Reaproveita a esteira de CI inteira. Publicar sem revalidar seria confiar
+  # que nada mudou entre o último check do PR e o estado real de `main`.
+  qualidade:
+    name: Qualidade
+    uses: ./.github/workflows/ci.yml
+
+  publicar:
+    name: Publicar no Maven Central
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write     # criar a tag e a GitHub Release
+      packages: write     # espelho no GitHub Packages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Ler a versão
+        id: versao
+        run: |
+          VERSAO=$(grep '^VERSION_NAME=' gradle.properties | cut -d'=' -f2)
+          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSAO" == *SNAPSHOT ]]; then
+            echo "snapshot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "snapshot=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Versão a publicar: $VERSAO"
+
+      - name: Verificar se a tag já existe
+        if: steps.versao.outputs.snapshot == 'false'
+        run: |
+          if git rev-parse "v${{ steps.versao.outputs.versao }}" >/dev/null 2>&1; then
+            echo "::error::A tag v${{ steps.versao.outputs.versao }} já existe. Atualize VERSION_NAME em gradle.properties."
+            exit 1
+          fi
+
+      # As credenciais chegam ao Gradle como propriedades de projeto: o plugin
+      # com.vanniktech.maven.publish lê `mavenCentralUsername`/`mavenCentralPassword`
+      # e as chaves de assinatura em memória, e o Gradle mapeia qualquer
+      # ORG_GRADLE_PROJECT_<nome> para a propriedade <nome>.
+      #
+      # IMPORTANTE: MAVEN_CENTRAL_USERNAME/PASSWORD precisam ser um **User Token**
+      # gerado em central.sonatype.com (View Account → Generate User Token), e não
+      # o login antigo do OSSRH — o Central Portal recusa credenciais de conta.
+      - name: Publicar no Maven Central
+        if: ${{ !inputs.dry_run }}
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          # `publishToMavenCentral` já dispara a liberação porque o build declara
+          # `publishToMavenCentral(automaticRelease = true)`. Não existe mais passo
+          # manual de curl na Staging API: o plugin faz upload e release em uma
+          # transação só, e falha o build se a validação do portal reprovar.
+          ./gradlew :design_system:publishToMavenCentral \
+            --no-configuration-cache --stacktrace
+
+      - name: Espelhar no GitHub Packages
+        if: ${{ !inputs.dry_run }}
+        continue-on-error: true
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew :design_system:publishAllPublicationsToGithubPackagesRepository \
+            --no-configuration-cache --stacktrace
+
+      - name: Ensaio (dry run)
+        if: ${{ inputs.dry_run }}
+        run: |
+          # Sem rede e sem assinatura: força uma versão -SNAPSHOT para que o
+          # plugin dispense a chave PGP e publica no repositório Maven local.
+          ./gradlew :design_system:publishToMavenLocal \
+            -PVERSION_NAME=0.0.0-dryrun-SNAPSHOT --stacktrace
+          echo "Ensaio concluído. Conteúdo empacotado:"
+          find ~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-dryrun-SNAPSHOT \
+            -type f | sed 's|^|  |'
+
+      - name: Criar tag e GitHub Release
+        if: ${{ !inputs.dry_run && steps.versao.outputs.snapshot == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSAO="${{ steps.versao.outputs.versao }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSAO" -m "MNS Design System v$VERSAO"
+          git push origin "v$VERSAO"
+          gh release create "v$VERSAO" \
+            --title "v$VERSAO" \
+            --notes "Publicado como \`io.github.matheusbrum11:mns-design-system:$VERSAO\`.
+
+          Consulte o [CHANGELOG](CHANGELOG.md) para o detalhamento das mudanças."

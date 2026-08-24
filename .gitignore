@@ -32,3 +32,9 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Worktrees do Claude Code (não fazem parte do projeto)
+.claude/worktrees/
+
+# Saída das ferramentas
+build/local-maven-repo/
