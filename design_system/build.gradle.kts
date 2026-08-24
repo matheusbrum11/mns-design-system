@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,17 +7,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kover)
-    `maven-publish`
-    signing
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
-private val artifactGroup: String = providers.gradleProperty("GROUP").get()
-private val artifactId: String = providers.gradleProperty("POM_ARTIFACT_ID").get()
-private val artifactVersion: String = providers.gradleProperty("VERSION_NAME").get()
 private val coverageMinimum: Int = providers.gradleProperty("mns.coverage.minimum").get().toInt()
 
-group = artifactGroup
-version = artifactVersion
+// `group` e `version` são definidos pelo plugin de publicação a partir de
+// GROUP e VERSION_NAME em gradle.properties — não os repita aqui.
 
 android {
     namespace = "com.mns.designsystem"
@@ -66,14 +63,6 @@ android {
         // quebram o build por passagem do tempo, não por regressão do código.
         // Tudo o mais é erro — inclusive os warnings.
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
-    }
-
-    // Gera artefatos `release` + sources + javadoc para publicação no Maven.
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
     }
 }
 
@@ -179,62 +168,47 @@ kover {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Publicação Maven
-//  Segredos vêm SEMPRE do ambiente (GitHub Actions Secrets). Nunca commite
-//  chave ou senha — veja docs/ci-cd.md para a lista de constantes.
+//  Publicação Maven — com.vanniktech.maven.publish
+//
+//  O plugin cuida de tudo que antes era manual: monta o POM a partir das
+//  propriedades POM_* de gradle.properties, gera os jars de sources e javadoc,
+//  assina com PGP e faz o upload para o Central Portal já disparando a
+//  liberação. O bloco manual anterior parava no staging da OSSRH e o artefato
+//  nunca saía de lá.
+//
+//  Segredos vêm SEMPRE do ambiente (ORG_GRADLE_PROJECT_*), nunca do repositório
+//  — veja docs/ci-cd.md para a lista de constantes.
 // ─────────────────────────────────────────────────────────────────────────────
+mavenPublishing {
+    // `automaticRelease = true`: assim que a validação do Central Portal passa,
+    // o deployment é liberado sozinho. Sem isso o artefato fica parado
+    // aguardando um clique no portal — exatamente o problema que tínhamos.
+    // Versões `-SNAPSHOT` ignoram este flag e vão para o repositório de
+    // snapshots do Central Portal.
+    publishToMavenCentral(automaticRelease = true)
+
+    // A assinatura só é exigida em versões que não sejam `-SNAPSHOT`, então a
+    // validação offline de CI continua rodando sem chave PGP.
+    signAllPublications()
+
+    // Substitui o `android { publishing { singleVariant("release") } }` manual:
+    // o plugin configura a variante e anexa os jars de sources e javadoc, que o
+    // Maven Central exige.
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+            publishJavadocJar = true,
+        ),
+    )
+}
+
+// Espelho no GitHub Packages. O plugin acima cobre só o Maven Central, mas
+// compõe com a publicação padrão do Gradle: basta declarar o repositório extra
+// e a publicação criada pelo plugin (chamada `maven`) ganha mais um alvo, via
+// `publishAllPublicationsToGithubPackagesRepository`.
 publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = artifactGroup
-            this.artifactId = artifactId
-            this.version = artifactVersion
-
-            afterEvaluate {
-                from(components["release"])
-            }
-
-            pom {
-                name.set(providers.gradleProperty("POM_NAME"))
-                description.set(providers.gradleProperty("POM_DESCRIPTION"))
-                url.set(providers.gradleProperty("POM_URL"))
-                inceptionYear.set(providers.gradleProperty("POM_INCEPTION_YEAR"))
-                licenses {
-                    license {
-                        name.set(providers.gradleProperty("POM_LICENSE_NAME"))
-                        url.set(providers.gradleProperty("POM_LICENSE_URL"))
-                        distribution.set(providers.gradleProperty("POM_LICENSE_URL"))
-                    }
-                }
-                developers {
-                    developer {
-                        id.set(providers.gradleProperty("POM_DEVELOPER_ID"))
-                        name.set(providers.gradleProperty("POM_DEVELOPER_NAME"))
-                        url.set(providers.gradleProperty("POM_DEVELOPER_URL"))
-                    }
-                }
-                scm {
-                    url.set(providers.gradleProperty("POM_SCM_URL"))
-                    connection.set(providers.gradleProperty("POM_SCM_CONNECTION"))
-                    developerConnection.set(providers.gradleProperty("POM_SCM_DEV_CONNECTION"))
-                }
-            }
-        }
-    }
-
     repositories {
-        // 1) Maven Central (Sonatype / Central Portal)
-        maven {
-            name = "mavenCentral"
-            val releasesUrl = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
-            val snapshotsUrl = uri("https://central.sonatype.com/repository/maven-snapshots/")
-            url = if (artifactVersion.endsWith("SNAPSHOT")) snapshotsUrl else releasesUrl
-            credentials {
-                username = System.getenv("MAVEN_CENTRAL_USERNAME")
-                password = System.getenv("MAVEN_CENTRAL_PASSWORD")
-            }
-        }
-        // 2) GitHub Packages (espelho, útil para consumo interno / pré-release)
         maven {
             name = "githubPackages"
             url = uri("https://maven.pkg.github.com/matheusbrum/mns-design-system")
@@ -243,20 +217,5 @@ publishing {
                 password = System.getenv("GITHUB_TOKEN")
             }
         }
-        // 3) Repositório local — usado pelos testes de publicação em CI
-        maven {
-            name = "localStaging"
-            url = uri(rootProject.layout.buildDirectory.dir("local-maven-repo"))
-        }
-    }
-}
-
-signing {
-    val signingKey = System.getenv("SIGNING_KEY")
-    val signingPassword = System.getenv("SIGNING_PASSWORD")
-    isRequired = !artifactVersion.endsWith("SNAPSHOT") && signingKey != null
-    if (signingKey != null) {
-        useInMemoryPgpKeys(System.getenv("SIGNING_KEY_ID"), signingKey, signingPassword)
-        sign(publishing.publications)
     }
 }

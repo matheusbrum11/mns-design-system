@@ -78,16 +78,28 @@ jobs:
             exit 1
           fi
 
+      # As credenciais chegam ao Gradle como propriedades de projeto: o plugin
+      # com.vanniktech.maven.publish lê `mavenCentralUsername`/`mavenCentralPassword`
+      # e as chaves de assinatura em memória, e o Gradle mapeia qualquer
+      # ORG_GRADLE_PROJECT_<nome> para a propriedade <nome>.
+      #
+      # IMPORTANTE: MAVEN_CENTRAL_USERNAME/PASSWORD precisam ser um **User Token**
+      # gerado em central.sonatype.com (View Account → Generate User Token), e não
+      # o login antigo do OSSRH — o Central Portal recusa credenciais de conta.
       - name: Publicar no Maven Central
         if: ${{ !inputs.dry_run }}
         env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew :design_system:publishReleasePublicationToMavenCentralRepository \
+          # `publishToMavenCentral` já dispara a liberação porque o build declara
+          # `publishToMavenCentral(automaticRelease = true)`. Não existe mais passo
+          # manual de curl na Staging API: o plugin faz upload e release em uma
+          # transação só, e falha o build se a validação do portal reprovar.
+          ./gradlew :design_system:publishToMavenCentral \
             --no-configuration-cache --stacktrace
 
       - name: Espelhar no GitHub Packages
@@ -96,19 +108,23 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew :design_system:publishReleasePublicationToGithubPackagesRepository \
+          ./gradlew :design_system:publishAllPublicationsToGithubPackagesRepository \
             --no-configuration-cache --stacktrace
 
       - name: Ensaio (dry run)
         if: ${{ inputs.dry_run }}
         run: |
-          ./gradlew :design_system:publishReleasePublicationToLocalStagingRepository --stacktrace
+          # Sem rede e sem assinatura: força uma versão -SNAPSHOT para que o
+          # plugin dispense a chave PGP e publica no repositório Maven local.
+          ./gradlew :design_system:publishToMavenLocal \
+            -PVERSION_NAME=0.0.0-dryrun-SNAPSHOT --stacktrace
           echo "Ensaio concluído. Conteúdo empacotado:"
-          find build/local-maven-repo -type f | sed 's|^|  |'
+          find ~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-dryrun-SNAPSHOT \
+            -type f | sed 's|^|  |'
 
       - name: Criar tag e GitHub Release
         if: ${{ !inputs.dry_run && steps.versao.outputs.snapshot == 'false' }}

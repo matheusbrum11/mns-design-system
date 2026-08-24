@@ -35,6 +35,7 @@ em `main` — e só depois de a mesma bateria de qualidade passar de novo.
 | Testes | `:design_system:testDebugUnitTest`, `:app_demo:testDebugUnitTest` | Qualquer teste falhando |
 | Cobertura | `:design_system:koverVerify` | Cobertura de linha abaixo de **90%** |
 | Build | `:design_system:assembleRelease`, `:app_demo:assembleDebug` | Erro de compilação ou empacotamento |
+| Empacotamento Maven | `:design_system:publishToMavenLocal` com `-PVERSION_NAME=0.0.0-ci-SNAPSHOT` | Falta `.pom`, `-sources.jar`, `-javadoc.jar` ou `.aar`, ou o POM sai sem `<distribution>repo</distribution>` |
 
 Localmente, o atalho equivalente é:
 
@@ -56,6 +57,10 @@ não renomeie.
 |---|---|---|
 | `MAVEN_CENTRAL_USERNAME` | *Username* do token do Central Portal | central.sonatype.com → View Account → Generate User Token |
 | `MAVEN_CENTRAL_PASSWORD` | *Password* do mesmo token | idem |
+
+> As duas precisam ser um **User Token** do Central Portal (View Account →
+> Generate User Token), não o login antigo do OSSRH — o portal recusa
+> credenciais de conta.
 
 ### Assinatura PGP (obrigatória para releases)
 
@@ -88,6 +93,20 @@ SIGNING_KEY
 SIGNING_PASSWORD
 ```
 
+Os workflows repassam esses secrets ao Gradle como propriedades de projeto, no
+formato que o plugin espera:
+
+| Secret | Variável de ambiente no workflow | Propriedade Gradle |
+|---|---|---|
+| `MAVEN_CENTRAL_USERNAME` | `ORG_GRADLE_PROJECT_mavenCentralUsername` | `mavenCentralUsername` |
+| `MAVEN_CENTRAL_PASSWORD` | `ORG_GRADLE_PROJECT_mavenCentralPassword` | `mavenCentralPassword` |
+| `SIGNING_KEY` | `ORG_GRADLE_PROJECT_signingInMemoryKey` | `signingInMemoryKey` |
+| `SIGNING_KEY_ID` | `ORG_GRADLE_PROJECT_signingInMemoryKeyId` | `signingInMemoryKeyId` |
+| `SIGNING_PASSWORD` | `ORG_GRADLE_PROJECT_signingInMemoryKeyPassword` | `signingInMemoryKeyPassword` |
+
+Para publicar da sua máquina, coloque as **propriedades** (coluna da direita) em
+`~/.gradle/gradle.properties` — nunca no `gradle.properties` do repositório.
+
 ---
 
 ## Como cortar um release
@@ -99,10 +118,11 @@ SIGNING_PASSWORD
 5. A `release.yml` roda sozinha: valida de novo, assina, publica e cria a tag
    `v0.2.0` com uma GitHub Release.
 
-Publicação manual, se necessário:
+Publicação manual, se necessário (exige as credenciais em
+`~/.gradle/gradle.properties`):
 
 ```bash
-./gradlew :design_system:publishReleasePublicationToMavenCentralRepository
+./gradlew :design_system:publishToMavenCentral
 ```
 
 ### Snapshots
@@ -112,22 +132,48 @@ assinatura. Útil para validar um consumidor antes de fechar a versão.
 
 ---
 
-## Repositórios configurados
+## O plugin de publicação
 
-`design_system/build.gradle.kts` declara três destinos:
+A publicação é feita por [`com.vanniktech.maven.publish`](https://vanniktech.github.io/gradle-maven-publish-plugin/),
+declarado em `design_system/build.gradle.kts`. Ele monta o POM a partir das
+propriedades `POM_*` de `gradle.properties`, gera os jars de sources e javadoc,
+assina com PGP e envia ao **Central Portal** já disparando a liberação
+(`automaticRelease = true`).
+
+> A versão do plugin está presa em **0.34.x** de propósito. A 0.35 exige Gradle
+> 8.13; a 0.36/0.37 exigem Gradle 9 + AGP 8.13 + Kotlin 2.2. A toolchain atual é
+> Gradle 8.11.1 / AGP 8.9.1 / Kotlin 2.1.10 — subir o plugin exige subir a
+> toolchain junto, e isso é uma migração à parte.
+
+### Tasks
+
+| Task | O que faz |
+|---|---|
+| `publishToMavenCentral` | Envia ao Central Portal e libera (por causa de `automaticRelease = true`). |
+| `publishAndReleaseToMavenCentral` | Idem, com a liberação declarada explicitamente. Redundante aqui. |
+| `publishAllPublicationsToGithubPackagesRepository` | Espelho no GitHub Packages. |
+| `publishToMavenLocal` | Publica em `~/.m2` — é a validação offline usada no CI. |
+| `dropMavenCentralDeployment` | Descarta um deployment que ficou preso no portal. |
+
+A publicação criada pelo plugin chama-se `maven` (não `release`): tasks antigas
+como `publishReleasePublicationTo…` não existem mais.
+
+### Repositórios
 
 | Nome | Uso |
 |---|---|
-| `mavenCentral` | Destino oficial. Releases e snapshots. |
+| `mavenCentral` | Destino oficial, configurado pelo plugin. Releases via Central Portal, snapshots no repositório de snapshots. |
 | `githubPackages` | Espelho para consumo interno e pré-release. |
-| `localStaging` | `build/local-maven-repo` — usado para testar a publicação sem rede. |
 
-Testar o empacotamento localmente:
+Testar o empacotamento localmente, sem rede e sem chave PGP:
 
 ```bash
-./gradlew :design_system:publishReleasePublicationToLocalStagingRepository
-find build/local-maven-repo -name "*.aar" -o -name "*.pom"
+./gradlew :design_system:publishToMavenLocal -PVERSION_NAME=0.0.0-local-SNAPSHOT
+find ~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-local-SNAPSHOT -type f
 ```
+
+O sufixo `-SNAPSHOT` não é decorativo: o plugin só exige assinatura fora de
+snapshots, e é isso que deixa a validação rodar em qualquer PR.
 
 ---
 

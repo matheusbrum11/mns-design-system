@@ -7,6 +7,14 @@
 agp = "8.9.1"
 kotlin = "2.1.10"
 kover = "0.9.1"
+# Publicação no Maven Central via Central Portal (upload + release automático,
+# assinatura PGP e jars de sources/javadoc). Substitui o maven-publish manual.
+#
+# Presa em 0.34.x de propósito: a 0.35 exige Gradle 8.13 e a 0.36/0.37 exigem
+# Gradle 9 + AGP 8.13 + Kotlin 2.2. Esta é a última linha compatível com a
+# toolchain atual (Gradle 8.11.1 / AGP 8.9.1 / Kotlin 2.1.10). Subir o plugin
+# exige subir a toolchain junto — ver docs/ci-cd.md.
+vanniktechPublish = "0.34.0"
 
 # SDK
 compileSdk = "35"
@@ -105,4 +113,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechPublish" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmarkMacro" }

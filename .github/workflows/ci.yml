@@ -84,8 +84,30 @@ jobs:
       - name: Build do app de demonstração
         run: ./gradlew :app_demo:assembleDebug --stacktrace
 
-      - name: Validar empacotamento Maven
-        run: ./gradlew :design_system:publishReleasePublicationToLocalStagingRepository --stacktrace
+      # Validação offline do empacotamento: publica no repositório Maven local
+      # e confere que POM, sources e javadoc saíram. A versão é forçada para
+      # `-SNAPSHOT` porque o plugin só exige assinatura PGP fora de snapshots —
+      # assim o passo roda em qualquer PR, sem credenciais e sem tocar a rede.
+      - name: Validar empacotamento Maven (offline)
+        run: |
+          ./gradlew :design_system:publishToMavenLocal \
+            -PVERSION_NAME=0.0.0-ci-SNAPSHOT --stacktrace
+
+          DIR=~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-ci-SNAPSHOT
+          echo "Artefatos gerados:"
+          find "$DIR" -type f | sed 's|^|  |'
+
+          for sufixo in ".pom" "-sources.jar" "-javadoc.jar" ".aar"; do
+            if ! ls "$DIR"/*"$sufixo" >/dev/null 2>&1; then
+              echo "::error::Artefato ausente: *$sufixo"
+              exit 1
+            fi
+          done
+
+          if ! grep -q "<distribution>repo</distribution>" "$DIR"/*.pom; then
+            echo "::error::POM sem <distribution>repo</distribution> na licença."
+            exit 1
+          fi
 
       # ── Artefatos ────────────────────────────────────────────────────────
       - name: Publicar relatórios de teste

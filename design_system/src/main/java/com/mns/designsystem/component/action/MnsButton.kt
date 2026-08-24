@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -206,8 +206,17 @@ public fun MnsButton(
         interactionSource = interactionSource,
     ) {
         Row(
+            // `fillMaxHeight()` (e não `fillMaxSize()`) é o que centraliza o
+            // conteúdo verticalmente: o Box do MnsSurface alinha em TopStart, e
+            // sem preencher a altura o rótulo encostava no topo do botão.
+            //
+            // A largura, porém, só é preenchida quando `fillMaxWidth` é `true`.
+            // `fillMaxSize()` preenchia as duas, e aí o botão consumia toda a
+            // largura oferecida pelo pai mesmo com o parâmetro `false` — o que
+            // zerava qualquer irmão com `weight(1f)` ao lado (o caso do
+            // MnsSectionHeader). Coberto por `MnsActionComponentTest`.
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
                 .let { if (fillMaxWidth) it.fillMaxWidth() else it }
                 .padding(horizontal = horizontalPadding),
             horizontalArrangement = Arrangement.spacedBy(
