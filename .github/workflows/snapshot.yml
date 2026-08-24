@@ -12,10 +12,20 @@ name: Snapshot
 on:
   push:
     branches: [main]
+    # `.github/**` NÃO entra aqui de propósito. Com ele na lista, uma mudança
+    # neste próprio workflow nunca se exercitava: o merge não disparava nada e
+    # só se descobria se a alteração funcionava na próxima mudança de código
+    # sem relação nenhuma. Mexer na esteira precisa rodar a esteira.
+    #
+    # Markdown aparece em dois padrões de propósito: `*.md` casa a raiz
+    # (README, CHANGELOG) e `**/*.md` casa os subdiretórios. A semântica de `**`
+    # varia entre implementações de glob, e listar os dois vale mais que apostar
+    # em qual delas o Actions usa — o custo de errar é publicar snapshot a cada
+    # ajuste de texto, ou pior, deixar de publicar quando devia.
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - '.github/**'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:
