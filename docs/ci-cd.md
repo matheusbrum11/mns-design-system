@@ -109,6 +109,24 @@ Para publicar da sua máquina, coloque as **propriedades** (coluna da direita) e
 
 ---
 
+## Verificação prévia da publicação
+
+Antes de compilar qualquer coisa, o `release.yml` confere:
+
+| Verificação | Falha quando |
+|---|---|
+| `GROUP` × dono do repositório | O namespace é `io.github.<conta>` e `<conta>` não é o dono do repositório — o Central Portal recusaria, porque a verificação de namespace é contra a posse da conta GitHub |
+| `MAVEN_CENTRAL_USERNAME` / `PASSWORD` | Ausentes ou **vazios** |
+| `SIGNING_KEY` / `SIGNING_KEY_ID` / `SIGNING_PASSWORD` | Ausentes ou vazios **e** a versão não é `-SNAPSHOT` (o plugin só exige assinatura fora de snapshots) |
+
+O teste é de conteúdo, não de existência: um secret que não existe **não some do
+ambiente**, o GitHub o injeta como string vazia. Sem essa checagem, o sintoma
+seria um `401 Unauthorized` vindo de dentro do Gradle, depois de compilar o
+projeto inteiro — caro de ler e fácil de confundir com problema de rede.
+
+Quando falha, a lista do que falta aparece no resumo do run, com o passo a passo
+para resolver.
+
 ## Como cortar um release
 
 1. Atualize `VERSION_NAME` em `gradle.properties` (ex.: `0.2.0`).
