@@ -8,10 +8,11 @@
 
 Avatar de usuário ou entidade.
 
-Resolve o conteúdo em ordem de preferência: `painter` → `icon` → iniciais de
-`name`. Ou seja, nunca renderiza vazio — o pior caso ainda mostra as iniciais
-sobre uma cor derivada do nome, o que dá identidade estável ao usuário mesmo
-sem foto.
+Resolve o conteúdo em ordem de preferência: `imageUrl` → `painter` → `icon` →
+iniciais de `name`. Ou seja, nunca renderiza vazio — o pior caso ainda mostra
+as iniciais sobre uma cor derivada do nome, o que dá identidade estável ao
+usuário mesmo sem foto. Uma URL que falha cai nas iniciais, não em um ícone
+de imagem quebrada.
 
 ### Parâmetros
 
@@ -19,7 +20,8 @@ sem foto.
 |---|---|---|---|
 | `name` | `String` | — | nome usado para gerar iniciais e a cor de fundo determinística. |
 | `modifier` | `Modifier` | `Modifier` | `Modifier` aplicado ao nó raiz do componente. |
-| `painter` | `Painter?` | `null` | imagem do avatar, quando disponível. |
+| `imageUrl` | `String?` | `null` | foto remota. Tem precedência sobre `painter` e `icon`; se a carga falhar, o avatar exibe as iniciais de `name`. |
+| `painter` | `Painter?` | `null` | imagem do avatar já carregada, quando disponível. |
 | `icon` | `ImageVector?` | `null` | ícone alternativo (ex.: entidade sem nome). |
 | `size` | `Dp` | `MnsTheme.sizing.avatarMd` | diâmetro. Use `MnsTheme.sizing.avatar*`. |
 | `shape` | `Shape` | `MnsTheme.shapes.avatar` | Forma do componente. Use um papel de `MnsTheme.shapes`. |

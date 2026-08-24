@@ -20,6 +20,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.semantics.contentDescription
@@ -70,34 +72,49 @@ public fun Modifier.mnsShimmer(
     this
         .background(colors.shimmerBase, resolvedShape)
         .drawWithCache {
+            // Só o que não depende da animação fica no cache. `progress` é lido
+            // dentro de `onDrawWithContent`: lê-lo aqui invalidaria o bloco a
+            // cada frame, recriando o Outline (e o Path das formas arredondadas)
+            // 60 vezes por segundo, para cada esqueleto na tela — exatamente a
+            // alocação que `drawWithCache` existe para evitar.
             val bandWidth = size.width * 0.6f
-            val start = -bandWidth + (size.width + bandWidth * 2) * progress
-            val brush = Brush.linearGradient(
-                colors = listOf(
-                    colors.shimmerBase,
-                    colors.shimmerHighlight,
-                    colors.shimmerBase,
-                ),
-                start = Offset(start, 0f),
-                end = Offset(start + bandWidth, size.height),
+            val gradiente = listOf(
+                colors.shimmerBase,
+                colors.shimmerHighlight,
+                colors.shimmerBase,
             )
             val outline = resolvedShape.createOutline(size, layoutDirection, this)
+            val caminho = (outline as? Outline.Rounded)?.let {
+                Path().apply { addRoundRect(it.roundRect) }
+            }
             onDrawWithContent {
                 drawContent()
-                drawShimmer(outline, brush)
+                val start = -bandWidth + (size.width + bandWidth * 2) * progress
+                val brush = Brush.linearGradient(
+                    colors = gradiente,
+                    start = Offset(start, 0f),
+                    end = Offset(start + bandWidth, size.height),
+                )
+                drawShimmer(outline, caminho, brush)
             }
         }
 }
 
+/**
+ * Pinta o brilho respeitando o recorte da forma.
+ *
+ * @param caminho `Path` pré-construído para formas arredondadas, vindo do cache
+ *   de [drawWithCache]. Construí-lo aqui alocaria um Path por frame.
+ */
 private fun DrawScope.drawShimmer(
-    outline: androidx.compose.ui.graphics.Outline,
+    outline: Outline,
+    caminho: Path?,
     brush: Brush,
 ) {
     when (outline) {
-        is androidx.compose.ui.graphics.Outline.Rectangle -> drawRect(brush)
-        is androidx.compose.ui.graphics.Outline.Rounded ->
-            drawPath(androidx.compose.ui.graphics.Path().apply { addRoundRect(outline.roundRect) }, brush)
-        is androidx.compose.ui.graphics.Outline.Generic -> drawPath(outline.path, brush)
+        is Outline.Rectangle -> drawRect(brush)
+        is Outline.Rounded -> caminho?.let { drawPath(it, brush) }
+        is Outline.Generic -> drawPath(outline.path, brush)
     }
 }
 

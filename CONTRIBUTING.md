@@ -24,7 +24,7 @@ Leitura de apoio: [Arquitetura](docs/architecture.md) ·
 ### Clonando e verificando
 
 ```bash
-git clone https://github.com/matheusbrum/mns-design-system.git
+git clone https://github.com/matheusbrum11/mns-design-system.git
 cd mns-design-system
 
 # aponte para o seu SDK

@@ -3,10 +3,13 @@ package com.mns.designsystem.component.input
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -108,15 +111,24 @@ public fun MnsChip(
                 maxLines = 1,
             )
             if (onDismiss != null) {
-                MnsIcon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Remover $label",
+                // O alvo é a caixa, não o ícone: antes o `clickable` ficava no
+                // próprio MnsIcon de 16dp, abaixo até do piso de 24×24 do
+                // WCAG 2.5.8. Aqui o ✕ ocupa toda a altura do chip e no mínimo
+                // 24dp de largura, mantendo o desenho do ícone em 16dp.
+                Box(
                     modifier = Modifier
-                        .defaultMinSize(minWidth = MnsTheme.sizing.iconSm)
+                        .fillMaxHeight()
+                        .widthIn(min = MnsTheme.sizing.iconLg)
                         .clickable(enabled = enabled, onClick = onDismiss),
-                    size = MnsTheme.sizing.iconSm,
-                    tint = contentColor,
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MnsIcon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Remover $label",
+                        size = MnsTheme.sizing.iconSm,
+                        tint = contentColor,
+                    )
+                }
             }
         }
     }

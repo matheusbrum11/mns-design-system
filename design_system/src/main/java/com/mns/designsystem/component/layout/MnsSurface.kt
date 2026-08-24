@@ -54,7 +54,7 @@ public fun MnsSurface(
     content: @Composable () -> Unit,
 ) {
     val opacity = MnsTheme.opacity
-    val effectiveColor = if (enabled) color else color.copy(alpha = 1f - opacity.disabled)
+    val effectiveColor = if (enabled) color else disabledContainerColor(color, opacity.disabled)
     val effectiveContent = if (enabled) contentColor else contentColor.copy(alpha = opacity.disabled)
 
     Box(
@@ -88,3 +88,21 @@ public fun MnsSurface(
         )
     }
 }
+
+/**
+ * Cor de container de um componente desabilitado.
+ *
+ * **Escala** o alpha existente em vez de substituí-lo. A diferença importa:
+ * `Color.copy(alpha = x)` preserva o RGB, e um container transparente tem RGB
+ * (0,0,0) — trocar só o alpha transformava `Color.Transparent` em preto
+ * semiopaco, fazendo um `MnsButton` de variante `TEXT` ou `OUTLINED`
+ * desabilitado desenhar uma caixa escura sobre fundo claro.
+ *
+ * Escalando, um container transparente (alpha 0) continua transparente, e um
+ * container opaco esmaece na proporção esperada.
+ *
+ * @param color cor do container quando habilitado.
+ * @param disabledOpacity `opacity.disabled` do tema (quanto se perde ao desabilitar).
+ */
+internal fun disabledContainerColor(color: Color, disabledOpacity: Float): Color =
+    color.copy(alpha = color.alpha * (1f - disabledOpacity))

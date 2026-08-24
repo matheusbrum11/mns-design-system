@@ -1,5 +1,6 @@
 package com.mns.designsystem.component.input
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
@@ -102,6 +104,13 @@ public fun MnsSlider(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(thumbRadius * 2)
+                // A largura é lida na fase de layout. Antes ela era gravada de
+                // dentro do lambda de draw do Canvas, o que só a disponibilizava
+                // depois do primeiro frame — o primeiro toque no slider era
+                // descartado — e reiniciava o detector de gestos a cada escrita,
+                // abortando arrastes em andamento quando o container mudava de
+                // tamanho.
+                .onSizeChanged { widthPx = it.width.toFloat() }
                 .semantics {
                     progressBarRangeInfo = ProgressBarRangeInfo(
                         current = value,
@@ -117,8 +126,7 @@ public fun MnsSlider(
                 },
             contentAlignment = Alignment.CenterStart,
         ) {
-            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(thumbRadius * 2)) {
-                widthPx = size.width
+            Canvas(modifier = Modifier.fillMaxWidth().height(thumbRadius * 2)) {
                 val trackPx = trackHeight.toPx()
                 val centerY = size.height / 2f
                 val radius = CornerRadius(trackPx / 2f, trackPx / 2f)

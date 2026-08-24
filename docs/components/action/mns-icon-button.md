@@ -18,7 +18,7 @@ Botão que contém apenas um ícone.
 | `modifier` | `Modifier` | `Modifier` | `Modifier` aplicado ao nó raiz do componente. |
 | `variant` | `MnsButtonVariant` | `MnsButtonVariant.TEXT` | ênfase — ver `MnsButtonVariant`. |
 | `enabled` | `Boolean` | `true` | Quando `false`, o componente ignora interação e reduz a opacidade. |
-| `size` | `Dp` | `MnsTheme.sizing.touchTarget` | lado do alvo de toque. Nunca abaixo de `sizing.touchTarget`. |
+| `size` | `Dp` | `MnsTheme.sizing.touchTarget` | lado do alvo de toque. O default é `sizing.touchTarget` (48dp) e é o que você deve usar. Reduza **apenas** dentro de containers densos onde 48dp não cabe — campo de texto, chip, cabeçalho de alerta — e nunca abaixo de 24dp, o piso do WCAG 2.5.8 (AA). Ver `docs/tokens/sizing.md`. |
 | `iconSize` | `Dp` | `MnsTheme.sizing.iconMd` | — |
 | `shape` | `Shape` | `MnsTheme.shapes.full` | Forma do componente. Use um papel de `MnsTheme.shapes`. |
 | `interactionSource` | `MutableInteractionSource` | `rememberMnsInteractionSource()` | Fonte de interação. Injete a sua para observar ou compartilhar os estados de toque/foco com outro elemento. |

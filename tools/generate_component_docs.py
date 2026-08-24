@@ -293,6 +293,12 @@ PAGES: dict[str, dict] = {
         "symbols": ["MnsIcon"],
         "enums": [],
     },
+    "media/mns-async-image.md": {
+        "title": "MnsAsyncImage",
+        "source": ["component/media/MnsAsyncImage.kt"],
+        "symbols": ["MnsAsyncImage"],
+        "enums": [],
+    },
     "media/mns-cover.md": {
         "title": "MnsCover",
         "source": ["component/media/MnsCover.kt"],

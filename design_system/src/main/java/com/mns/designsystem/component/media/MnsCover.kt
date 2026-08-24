@@ -30,7 +30,9 @@ import com.mns.designsystem.theme.MnsTheme
  * contraste em metade das imagens. O gradiente resolve isso sem escurecer a
  * imagem inteira.
  *
- * @param painter imagem a exibir. `null` mostra o placeholder de carregamento.
+ * @param painter imagem já carregada. `null` mostra o placeholder de shimmer.
+ * @param imageUrl capa remota. Tem precedência sobre [painter] e usa o mesmo
+ *   shimmer como placeholder de carregamento.
  * @param contentDescription descrição da imagem; `null` a marca como decorativa.
  * @param height altura da capa.
  * @param scrim aplica gradiente escuro da base ao topo.
@@ -41,6 +43,7 @@ public fun MnsCover(
     painter: Painter?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    imageUrl: String? = null,
     height: Dp = MnsTheme.sizing.coverHeight,
     shape: Shape = MnsTheme.shapes.image,
     scrim: Boolean = false,
@@ -54,7 +57,14 @@ public fun MnsCover(
             .clip(shape)
             .background(placeholderColor),
     ) {
-        if (painter != null) {
+        if (imageUrl != null) {
+            MnsAsyncImage(
+                model = imageUrl,
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                shape = shape,
+            )
+        } else if (painter != null) {
             Image(
                 painter = painter,
                 contentDescription = null,

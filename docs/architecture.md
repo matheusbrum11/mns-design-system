@@ -83,16 +83,33 @@ alguém vai representá-lo.
 indicadores; `selectableGroup()` nas barras de aba. Acessibilidade que depende
 de o consumidor lembrar não acontece.
 
-### 5. Nenhuma dependência pesada
+### 5. Dependências de terceiros são a exceção, e ficam isoladas
 
 A biblioteca **não** depende de `material-icons-extended` (≈2 mil vetores).
 Os poucos ícones que os componentes internos exigem e que não estão no
 `material-icons-core` moram em `MnsIcons`, desenhados à mão. O `:app_demo` usa
 o pacote completo à vontade — ele não é publicado.
 
-A única dependência de terceiros é `com.google.zxing:core`, isolada em
-`MnsQrEncoder`. `MnsQrCode` fala apenas `MnsQrMatrix`, então trocar de
-codificador não toca em nenhum componente.
+São **duas** as dependências de terceiros, cada uma atrás de um único arquivo:
+
+| Dependência | Escopo | Isolada em | O que a substitui não toca |
+|---|---|---|---|
+| `com.google.zxing:core` | `implementation` | `MnsQrEncoder` | `MnsQrCode` fala só `MnsQrMatrix` |
+| `io.coil-kt:coil-compose` | `api` | `MnsAsyncImage` | `MnsIcon`, `MnsAvatar`, `MnsCover` e `MnsListLeading.RemoteThumbnail` passam por ele |
+
+O Coil entra como `api` (e não `implementation`) de propósito: quem consome a
+biblioteca precisa alcançá-lo para configurar o `ImageLoader` — cache, cabeçalhos,
+autenticação. Escondê-lo só obrigaria o app a redeclarar a mesma dependência.
+
+**Por que Coil e não Picasso ou Glide.** Picasso não tem API para Compose e sua
+última publicação é de 2020. O `glide-compose` continua em `1.0.0-beta` desde
+2023. O Coil é a única das três com API Compose estável, é escrito em Kotlin com
+corrotinas e é o que a própria AndroidX usa nos exemplos. A biblioteca fixa a
+linha 2.x, que é Android-only e traz o OkHttp embutido; a 3.x é multiplataforma
+e exige artefato de rede à parte — caminho de atualização, não requisito de hoje.
+
+**A biblioteca não declara a permissão `INTERNET`.** Quem decide se o app acessa
+a rede é o app. O `:app_demo` declara a dele.
 
 ---
 

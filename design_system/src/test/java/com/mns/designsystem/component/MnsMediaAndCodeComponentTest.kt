@@ -2,6 +2,7 @@ package com.mns.designsystem.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.Modifier
@@ -10,6 +11,7 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
@@ -26,6 +28,10 @@ import com.mns.designsystem.component.loading.MnsShimmerCard
 import com.mns.designsystem.component.loading.MnsShimmerListItem
 import com.mns.designsystem.component.loading.MnsShimmerParagraph
 import com.mns.designsystem.component.loading.mnsShimmer
+import com.mns.designsystem.component.list.MnsAvatar
+import com.mns.designsystem.component.list.MnsListAction
+import com.mns.designsystem.component.list.MnsListLeading
+import com.mns.designsystem.component.media.MnsAsyncImage
 import com.mns.designsystem.component.media.MnsCover
 import com.mns.designsystem.component.media.MnsIcon
 import com.mns.designsystem.component.media.MnsIcons
@@ -107,6 +113,98 @@ class MnsMediaAndCodeComponentTest : MnsComposeTest() {
         advance(400)
         composeRule.onNodeWithContentDescription("Capa do evento").assertShown()
         composeRule.onNodeWithText("Sobreposto").assertShown()
+    }
+
+    // ── Imagem remota ────────────────────────────────────────────────────────
+    //
+    // Sem rede no ambiente de teste, o Coil nunca chega ao estado Success. O que
+    // se verifica aqui é o contrato que não depende de rede: a semântica é
+    // exposta, o placeholder aparece e a falha cai no fallback certo em vez de
+    // quebrar a composição. A renderização da imagem em si é território dos
+    // testes instrumentados.
+
+    @Test
+    fun `imagem remota expoe a descricao e nao quebra sem rede`() {
+        setThemedContent {
+            MnsAsyncImage(
+                model = "https://exemplo.invalido/capa.png",
+                contentDescription = "Capa do evento",
+                modifier = Modifier.size(120.dp),
+            )
+        }
+        advance(600)
+        composeRule.onNodeWithContentDescription("Capa do evento").assertShown()
+    }
+
+    @Test
+    fun `imagem remota decorativa nao entra na arvore de semantica`() {
+        setThemedContent {
+            Column {
+                MnsText("ancora")
+                MnsAsyncImage(
+                    model = "https://exemplo.invalido/x.png",
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                )
+            }
+        }
+        composeRule.onNodeWithText("ancora").assertShown()
+        composeRule.onNodeWithContentDescription("x.png").assertDoesNotExist()
+    }
+
+    @Test
+    fun `icone remoto renderiza com e sem fallback`() {
+        setThemedContent {
+            Column {
+                MnsIcon(
+                    imageUrl = "https://exemplo.invalido/logo.png",
+                    contentDescription = "Logo do parceiro",
+                )
+                MnsIcon(
+                    imageUrl = "https://exemplo.invalido/quebrado.png",
+                    contentDescription = "Com fallback",
+                    fallback = Icons.Filled.Star,
+                )
+            }
+        }
+        advance(600)
+        composeRule.onNodeWithContentDescription("Logo do parceiro").assertShown()
+        composeRule.onNodeWithContentDescription("Com fallback").assertShown()
+    }
+
+    @Test
+    fun `avatar remoto mantem o nome na semantica`() {
+        setThemedContent {
+            MnsAvatar(name = "Alves Farhat", imageUrl = "https://exemplo.invalido/foto.jpg")
+        }
+        advance(600)
+        composeRule.onNodeWithContentDescription("Alves Farhat").assertShown()
+    }
+
+    @Test
+    fun `capa remota tem precedencia sobre o painter`() {
+        setThemedContent {
+            MnsCover(
+                painter = ColorPainter(Color.Red),
+                imageUrl = "https://exemplo.invalido/capa.jpg",
+                contentDescription = "Capa remota",
+                height = 100.dp,
+            )
+        }
+        advance(600)
+        composeRule.onNodeWithContentDescription("Capa remota").assertShown()
+    }
+
+    @Test
+    fun `miniatura remota em item de lista renderiza`() {
+        setThemedContent {
+            MnsListAction(
+                title = "Evento",
+                leading = MnsListLeading.RemoteThumbnail("https://exemplo.invalido/t.jpg"),
+            )
+        }
+        advance(600)
+        composeRule.onNodeWithText("Evento").assertShown()
     }
 
     // ── QR Code ──────────────────────────────────────────────────────────────

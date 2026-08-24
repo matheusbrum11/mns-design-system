@@ -105,6 +105,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.zxing.core)
 
+    // `api` e não `implementation`: quem consome a biblioteca precisa alcançar
+    // o Coil para configurar o `ImageLoader` (cache, cabeçalhos, autenticação).
+    // Esconder a dependência só obrigaria a redeclará-la.
+    api(libs.coil.compose)
+
     compileOnly(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
@@ -211,7 +216,7 @@ publishing {
     repositories {
         maven {
             name = "githubPackages"
-            url = uri("https://maven.pkg.github.com/matheusbrum/mns-design-system")
+            url = uri("https://maven.pkg.github.com/matheusbrum11/mns-design-system")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")

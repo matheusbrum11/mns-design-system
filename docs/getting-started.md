@@ -29,7 +29,7 @@ precisa declará-las de novo.
 mnsDesignSystem = "0.1.0"
 
 [libraries]
-mns-design-system = { module = "io.github.matheusbrum:mns-design-system", version.ref = "mnsDesignSystem" }
+mns-design-system = { module = "io.github.matheusbrum11:mns-design-system", version.ref = "mnsDesignSystem" }
 ```
 
 **`app/build.gradle.kts`**
@@ -140,7 +140,38 @@ fun AppRoot() {
 
 ---
 
-## 4. Trocar para a sua marca
+## 4. Configurar o carregamento de imagens (opcional)
+
+Os componentes que aceitam uma URL — `MnsAsyncImage`, `MnsIcon(imageUrl = …)`,
+`MnsAvatar(imageUrl = …)`, `MnsCover(imageUrl = …)` e
+`MnsListLeading.RemoteThumbnail` — usam o singleton do [Coil](https://coil-kt.github.io/coil/).
+
+Sem nenhuma configuração eles já funcionam, desde que o seu app declare a
+permissão de rede:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+Para controlar cache, cabeçalhos ou autenticação, implemente `ImageLoaderFactory`
+na sua `Application`:
+
+```kotlin
+class MeuApp : Application(), ImageLoaderFactory {
+    override fun newImageLoader() = ImageLoader.Builder(this)
+        .crossfade(true)
+        .okHttpClient {
+            OkHttpClient.Builder()
+                .addInterceptor(InterceptorDeAutenticacao())
+                .build()
+        }
+        .build()
+}
+```
+
+O design system não impõe nada disso: ele só chama o loader que você configurou.
+
+## 5. Trocar para a sua marca
 
 O caminho mais curto é derivar de um preset:
 
@@ -169,7 +200,7 @@ Detalhes, incluindo como partir de um print de design, em
 
 ---
 
-## 5. Rodar o app de demonstração
+## 6. Rodar o app de demonstração
 
 O módulo `:app_demo` é o catálogo vivo: lista todos os componentes por
 categoria, e cada tela permite mexer nos parâmetros e ver o efeito em tempo
@@ -188,7 +219,7 @@ primária, o raio, a densidade e a tipografia — e exporta o resultado como
 ## Configuração do projeto (para desenvolver a biblioteca)
 
 ```bash
-git clone https://github.com/matheusbrum/mns-design-system.git
+git clone https://github.com/matheusbrum11/mns-design-system.git
 cd mns-design-system
 ```
 

@@ -10,8 +10,13 @@ on:
   workflow_call:        # reaproveitado pelo release.yml
   workflow_dispatch:
 
+# `github.workflow` entra no grupo de propósito: em workflow reutilizável ele
+# resolve para o nome do workflow CHAMADOR. Sem isso, um push em main dispara
+# ci.yml direto e release.yml (que chama ci.yml), as duas execuções caem no
+# mesmo grupo e uma cancela a outra — quando a cancelada é a do release, o job
+# `publicar` nunca roda e a versão não é publicada, sem erro visível.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -93,7 +98,7 @@ jobs:
           ./gradlew :design_system:publishToMavenLocal \
             -PVERSION_NAME=0.0.0-ci-SNAPSHOT --stacktrace
 
-          DIR=~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-ci-SNAPSHOT
+          DIR=~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-ci-SNAPSHOT
           echo "Artefatos gerados:"
           find "$DIR" -type f | sed 's|^|  |'
 

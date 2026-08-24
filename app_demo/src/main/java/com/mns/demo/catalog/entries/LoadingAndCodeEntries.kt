@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Insights
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.mns.demo.catalog.DemoCategory
 import com.mns.demo.catalog.DemoComponent
@@ -30,6 +33,8 @@ import com.mns.designsystem.component.loading.MnsShimmerCard
 import com.mns.designsystem.component.loading.MnsShimmerListItem
 import com.mns.designsystem.component.loading.MnsShimmerParagraph
 import com.mns.designsystem.component.loading.mnsShimmer
+import com.mns.designsystem.component.list.MnsAvatar
+import com.mns.designsystem.component.media.MnsAsyncImage
 import com.mns.designsystem.component.media.MnsCover
 import com.mns.designsystem.component.media.MnsIcon
 import com.mns.designsystem.component.media.MnsIcons
@@ -226,6 +231,95 @@ internal fun loadingAndCodeEntries(): List<DemoComponent> = listOf(
                 MnsIcon(MnsIcons.Minus, "Diminuir", size = size, tint = tint)
                 MnsIcon(MnsIcons.Bookmark, "Salvar", size = size, tint = tint)
                 MnsIcon(MnsIcons.QrCode, "Código", size = size, tint = tint)
+            }
+        }
+    },
+
+    DemoComponent(
+        id = "mns-async-image",
+        name = "MnsAsyncImage",
+        category = DemoCategory.MEDIA,
+        summary = "Imagem remota com shimmer de carregamento e fallback tokenizados.",
+        docPath = "docs/components/media/mns-async-image.md",
+        icon = Icons.Filled.CloudDownload,
+        knobs = listOf(
+            DemoKnob.TextKnob(
+                key = "url",
+                label = "model (URL)",
+                description = "Troque para uma URL inválida e veja o fallback assumir.",
+                default = "https://picsum.photos/seed/mns/600/400",
+            ),
+            DemoKnob.OptionKnob(
+                key = "scale",
+                label = "contentScale",
+                options = listOf("Crop", "Fit", "FillBounds", "Inside"),
+                description = "Como a imagem preenche a área.",
+                default = "Crop",
+            ),
+            DemoKnob.OptionKnob(
+                key = "shape",
+                label = "shape",
+                options = listOf("image", "large", "full", "none"),
+                description = "Recorte aplicado à imagem e ao placeholder.",
+                default = "image",
+            ),
+            DemoKnob.BoolKnob(
+                key = "shimmer",
+                label = "showShimmerWhileLoading",
+                description = "Usa o shimmer do design system enquanto baixa.",
+                default = true,
+            ),
+            DemoKnob.NumberKnob("altura", "altura (dp)", 80f..260f, "Altura da área.", 180f, 18),
+        ),
+    ) { knobs ->
+        val shapes = MnsTheme.shapes
+        Column(verticalArrangement = Arrangement.spacedBy(MnsTheme.spacing.base)) {
+            MnsAsyncImage(
+                model = knobs.text("url"),
+                contentDescription = "Imagem de demonstração",
+                modifier = Modifier.fillMaxWidth().height(knobs.number("altura", 180f).dp),
+                shape = when (knobs.option("shape", "image")) {
+                    "large" -> shapes.large
+                    "full" -> shapes.full
+                    "none" -> shapes.none
+                    else -> shapes.image
+                },
+                contentScale = when (knobs.option("scale", "Crop")) {
+                    "Fit" -> ContentScale.Fit
+                    "FillBounds" -> ContentScale.FillBounds
+                    "Inside" -> ContentScale.Inside
+                    else -> ContentScale.Crop
+                },
+                showShimmerWhileLoading = knobs.bool("shimmer", true),
+                fallback = {
+                    MnsIcon(
+                        imageVector = Icons.Filled.BrokenImage,
+                        contentDescription = "Falha ao carregar",
+                        size = MnsTheme.sizing.iconXl,
+                        tint = MnsTheme.colors.textTertiary,
+                    )
+                },
+            )
+            MnsText(
+                text = "Mesma URL usada como avatar e como ícone remoto:",
+                style = MnsTheme.typography.bodySmall,
+                color = MnsTheme.colors.textSecondary,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(MnsTheme.spacing.base),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MnsAvatar(
+                    name = "Ana Silva",
+                    imageUrl = knobs.text("url"),
+                    size = MnsTheme.sizing.avatarLg,
+                )
+                MnsIcon(
+                    imageUrl = knobs.text("url"),
+                    contentDescription = "Ícone remoto",
+                    size = MnsTheme.sizing.iconXl,
+                    fallback = Icons.Filled.BrokenImage,
+                )
             }
         }
     },

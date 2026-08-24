@@ -268,7 +268,10 @@ public fun MnsButton(
  *   informação que o leitor de tela tem. Passe `null` apenas se o botão for
  *   puramente decorativo — o que quase nunca é o caso.
  * @param variant ênfase — ver [MnsButtonVariant].
- * @param size lado do alvo de toque. Nunca abaixo de `sizing.touchTarget`.
+ * @param size lado do alvo de toque. O default é `sizing.touchTarget` (48dp) e
+ *   é o que você deve usar. Reduza **apenas** dentro de containers densos onde
+ *   48dp não cabe — campo de texto, chip, cabeçalho de alerta — e nunca abaixo
+ *   de 24dp, o piso do WCAG 2.5.8 (AA). Ver `docs/tokens/sizing.md`.
  */
 @Composable
 public fun MnsIconButton(

@@ -3,13 +3,13 @@
 Design system Android em **Jetpack Compose** — 100% tokenizável, desacoplado e
 publicado como artefato Maven.
 
-[![CI](https://github.com/matheusbrum/mns-design-system/actions/workflows/ci.yml/badge.svg)](https://github.com/matheusbrum/mns-design-system/actions/workflows/ci.yml)
-[![Release](https://github.com/matheusbrum/mns-design-system/actions/workflows/release.yml/badge.svg)](https://github.com/matheusbrum/mns-design-system/actions/workflows/release.yml)
+[![CI](https://github.com/matheusbrum11/mns-design-system/actions/workflows/ci.yml/badge.svg)](https://github.com/matheusbrum11/mns-design-system/actions/workflows/ci.yml)
+[![Release](https://github.com/matheusbrum11/mns-design-system/actions/workflows/release.yml/badge.svg)](https://github.com/matheusbrum11/mns-design-system/actions/workflows/release.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-96%25-brightgreen)](docs/testing.md)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache%202.0-blue)](LICENSE)
 
 ```kotlin
-implementation("io.github.matheusbrum:mns-design-system:0.1.0")
+implementation("io.github.matheusbrum11:mns-design-system:0.1.0")
 ```
 
 ```kotlin
@@ -28,7 +28,7 @@ MnsTheme(provider = MnsIndigoTicket) {
 
 ## O que tem aqui
 
-- **44 componentes** em 10 categorias — ações, entrada, texto, status, layout,
+- **45 componentes** em 10 categorias — ações, entrada, texto, status, layout,
   listas, atalhos, carregamento, códigos e mídia.
 - **10 famílias de token** em três camadas (reference → semantic → componente).
   Nenhum componente contém literal de cor, raio, espaçamento ou duração.
@@ -50,7 +50,7 @@ MnsTheme(provider = MnsIndigoTicket) {
 | | |
 |---|---|
 | [Primeiros passos](docs/getting-started.md) | Instalar, primeiro `MnsTheme`, primeira tela |
-| [Componentes](docs/components/README.md) | 44 páginas com todos os parâmetros de cada componente |
+| [Componentes](docs/components/README.md) | 45 páginas com todos os parâmetros de cada componente |
 | [Tokens](docs/tokens/README.md) | As 10 famílias, com tabela completa e o que cada token faz |
 | [Tematização](docs/theming.md) | Presets, `MnsThemeProvider` e a marca da sua empresa |
 | [Design Contract](docs/design-contract.md) | Print de design → JSON de tokens → tema |

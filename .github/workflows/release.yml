@@ -123,7 +123,7 @@ jobs:
           ./gradlew :design_system:publishToMavenLocal \
             -PVERSION_NAME=0.0.0-dryrun-SNAPSHOT --stacktrace
           echo "Ensaio concluído. Conteúdo empacotado:"
-          find ~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-dryrun-SNAPSHOT \
+          find ~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-dryrun-SNAPSHOT \
             -type f | sed 's|^|  |'
 
       - name: Criar tag e GitHub Release
@@ -138,6 +138,6 @@ jobs:
           git push origin "v$VERSAO"
           gh release create "v$VERSAO" \
             --title "v$VERSAO" \
-            --notes "Publicado como \`io.github.matheusbrum:mns-design-system:$VERSAO\`.
+            --notes "Publicado como \`io.github.matheusbrum11:mns-design-system:$VERSAO\`.
 
           Consulte o [CHANGELOG](CHANGELOG.md) para o detalhamento das mudanças."

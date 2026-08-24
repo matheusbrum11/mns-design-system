@@ -52,7 +52,7 @@ padrão e uma descrição breve do que cada um faz.
 
 ### Componentes
 
-**[Índice completo — 44 páginas](components/README.md)**, agrupadas por função:
+**[Índice completo — 45 páginas](components/README.md)**, agrupadas por função:
 ações, entrada, texto, status, layout, listas, atalhos, carregamento, códigos
 e mídia.
 

@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -72,3 +73,55 @@ public fun MnsIcon(
         colorFilter = colorFilter,
     )
 }
+
+/**
+ * Ícone carregado de uma **URL remota**.
+ *
+ * Existe para catálogos em que a categoria, a bandeira do cartão ou o logo do
+ * parceiro vêm do backend — casos em que o vetor não está no APK.
+ *
+ * Diferença importante em relação às outras sobrecargas: aqui o [tint] é
+ * `Color.Unspecified` por padrão, ou seja, **não tinge**. Arte remota costuma
+ * ser colorida (logo de bandeira, avatar de parceiro), e tingir por engano
+ * transformaria tudo em uma silhueta chapada. Passe [tint] explicitamente
+ * quando souber que o recurso é monocromático.
+ *
+ * @param imageUrl endereço da imagem.
+ * @param contentDescription descrição para leitores de tela; `null` para ícone
+ *   decorativo cujo significado já está no texto ao lado.
+ * @param size lado do ícone. Use um degrau de `MnsTheme.sizing.icon*`.
+ * @param tint cor de preenchimento. O default **não** tinge — ver acima.
+ * @param fallback vetor local desenhado quando a carga falha. Sem ele, a área
+ *   fica vazia.
+ */
+@Composable
+public fun MnsIcon(
+    imageUrl: String,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    size: Dp = MnsTheme.sizing.iconMd,
+    tint: Color = Color.Unspecified,
+    fallback: ImageVector? = null,
+) {
+    MnsAsyncImage(
+        model = imageUrl,
+        contentDescription = contentDescription,
+        modifier = Modifier.size(size).then(modifier),
+        shape = MnsTheme.shapes.none,
+        contentScale = ContentScale.Fit,
+        colorFilter = if (tint == Color.Unspecified) null else ColorFilter.tint(tint),
+        fallback = if (fallback != null) {
+            {
+                MnsIcon(
+                    imageVector = fallback,
+                    contentDescription = null,
+                    size = size,
+                    tint = if (tint == Color.Unspecified) LocalContentColor.current else tint,
+                )
+            }
+        } else {
+            null
+        },
+    )
+}
+

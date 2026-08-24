@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mns.designsystem.component.layout.MnsSurface
+import com.mns.designsystem.component.media.MnsAsyncImage
 import com.mns.designsystem.component.media.MnsIcon
 import com.mns.designsystem.component.text.MnsText
 import com.mns.designsystem.theme.MnsTheme
@@ -53,9 +54,20 @@ public sealed interface MnsListLeading {
         val containerColor: Color? = null,
     ) : MnsListLeading
 
-    /** Miniatura de imagem (capa de evento, thumbnail). */
+    /** Miniatura de imagem já carregada (capa de evento, thumbnail). */
     public data class Thumbnail(
         val painter: Painter,
+        val size: Dp? = null,
+    ) : MnsListLeading
+
+    /**
+     * Miniatura carregada de uma URL remota, com shimmer enquanto baixa.
+     *
+     * @property url endereço da imagem.
+     * @property size lado da miniatura; `null` usa 56dp.
+     */
+    public data class RemoteThumbnail(
+        val url: String,
         val size: Dp? = null,
     ) : MnsListLeading
 
@@ -231,6 +243,13 @@ private fun MnsListLeadingSlot(leading: MnsListLeading, enabled: Boolean) {
                 .clip(MnsTheme.shapes.image),
             contentScale = ContentScale.Crop,
         )
+        is MnsListLeading.RemoteThumbnail -> MnsAsyncImage(
+            model = leading.url,
+            contentDescription = null,
+            modifier = Modifier.size(leading.size ?: 56.dp),
+            shape = MnsTheme.shapes.image,
+        )
+
         is MnsListLeading.Custom -> leading.content()
     }
 }

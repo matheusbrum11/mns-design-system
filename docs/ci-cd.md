@@ -169,7 +169,7 @@ Testar o empacotamento localmente, sem rede e sem chave PGP:
 
 ```bash
 ./gradlew :design_system:publishToMavenLocal -PVERSION_NAME=0.0.0-local-SNAPSHOT
-find ~/.m2/repository/io/github/matheusbrum/mns-design-system/0.0.0-local-SNAPSHOT -type f
+find ~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-local-SNAPSHOT -type f
 ```
 
 O sufixo `-SNAPSHOT` não é decorativo: o plugin só exige assinatura fora de
@@ -180,7 +180,7 @@ snapshots, e é isso que deixa a validação rodar em qualquer PR.
 ## Coordenadas do artefato
 
 ```
-io.github.matheusbrum:mns-design-system:<versão>
+io.github.matheusbrum11:mns-design-system:<versão>
 ```
 
 Todas as coordenadas e metadados do POM ficam em `gradle.properties` — nada de

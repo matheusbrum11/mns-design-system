@@ -71,7 +71,13 @@ porque tamanho de alvo de toque é regra de acessibilidade, não de estética:
 | `/** Altura padrão da imagem de capa em cards. */
     val coverHeight` | `Dp` | — | — |
 | `// ── Acessibilidade ───────────────────────────────────────────────────────
-    /** Alvo de toque mínimo. **Não reduza abaixo de 48dp** (WCAG 2.5.5 / Material). */
+    /**
+     * Alvo de toque padrão — 48dp (WCAG 2.5.5 AAA / Material).
+     *
+     * É o default de todo componente acionável do MNS. Containers densos são a
+     * única exceção conhecida` | `dentro de um chip de 32dp ou de um campo de      * 52dp` | — | — |
+| `o mínimo do WCAG 2.5.8 (AA) — abaixo disso é bug.
+     */
     val touchTarget` | `Dp` | — | — |
 
 ---

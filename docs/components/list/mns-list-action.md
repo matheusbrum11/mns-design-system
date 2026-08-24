@@ -55,7 +55,8 @@ estado "avatar **e** ícone ao mesmo tempo", que renderizava layout quebrado.
 | `None` | Sem elemento inicial — o texto começa na margem. |
 | `Avatar` | Avatar com iniciais/foto. |
 | `Icon` | Ícone dentro de um container arredondado. |
-| `Thumbnail` | Miniatura de imagem (capa de evento, thumbnail). |
+| `Thumbnail` | Miniatura de imagem já carregada (capa de evento, thumbnail). |
+| `RemoteThumbnail` | Miniatura carregada de uma URL remota, com shimmer enquanto baixa. |
 | `Custom` | Slot totalmente livre. |
 
 ---

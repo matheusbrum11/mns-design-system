@@ -5,6 +5,28 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Adicionado
+- `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
+  fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
+  `MnsCover`, mais `MnsListLeading.RemoteThumbnail`.
+
+### Corrigido
+- `MnsAvatarGroup` espalhava os avatares em vez de sobrepô-los: o deslocamento
+  estava com o sinal invertido. Agora usa espaçamento negativo, o que também
+  corrige a largura medida do grupo.
+- `MnsSurface` pintava um fundo preto semiopaco ao desabilitar um container
+  transparente, afetando `MnsButton` `TEXT`/`OUTLINED` e `MnsCard` `GHOST`.
+- `MnsSlider` gravava a largura na fase de desenho: o primeiro toque era
+  descartado e arrastes eram abortados quando o container mudava de tamanho.
+- `MnsChip` tinha alvo de toque de 16dp no botão de remover, abaixo do piso de
+  24dp do WCAG 2.5.8.
+- `MnsShimmer` recriava `Brush`, `Outline` e `Path` a cada frame.
+- Coordenadas de publicação apontavam para `matheusbrum`; o repositório é
+  `matheusbrum11`, o que inviabilizaria a verificação de namespace no Central
+  Portal e o espelho no GitHub Packages.
+- Os grupos de concorrência de `ci.yml` faziam a execução direta e a chamada
+  pelo `release.yml` se cancelarem, podendo impedir a publicação.
+
 ## [0.1.0] — 2026-08-20
 
 Primeira versão do **MNS Design System**.
@@ -69,5 +91,5 @@ Primeira versão do **MNS Design System**.
 - Esteira de CI/CD até a publicação no Maven Central.
 - Gerador de documentação a partir do KDoc, com modo `--check` na CI.
 
-[Não publicado]: https://github.com/matheusbrum/mns-design-system/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/matheusbrum/mns-design-system/releases/tag/v0.1.0
+[Não publicado]: https://github.com/matheusbrum11/mns-design-system/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/matheusbrum11/mns-design-system/releases/tag/v0.1.0

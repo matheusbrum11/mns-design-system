@@ -1,6 +1,7 @@
 package com.mns.designsystem.component
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
@@ -65,6 +67,56 @@ class MnsCollectionComponentTest : MnsComposeTest() {
             MnsAvatarGroup(names = participantes, max = 2)
         }
         composeRule.onNodeWithContentDescription("4 participantes").assertShown()
+    }
+
+    /**
+     * Regressão: o deslocamento de sobreposição estava com o sinal invertido,
+     * então os avatares eram empurrados para a **direita** e o grupo ficava
+     * espalhado — medindo exatamente `n * size`, como se `overlap` não existisse.
+     */
+    @Test
+    fun `grupo de avatares realmente sobrepoe`() {
+        setThemedContent {
+            Column {
+                MnsAvatar(name = "A A", size = 40.dp, modifier = Modifier.testTag("um"))
+                MnsAvatarGroup(
+                    names = participantes,
+                    max = 3,
+                    size = 40.dp,
+                    overlap = 0.5f,
+                    modifier = Modifier.testTag("grupo"),
+                )
+            }
+        }
+        val um = composeRule.onNodeWithTag("um").fetchSemanticsNode().size.width
+        val grupo = composeRule.onNodeWithTag("grupo").fetchSemanticsNode().size.width
+
+        // 3 avatares visíveis + o contador "+1", cada um recuando metade da
+        // largura: 4 - 3*0.5 = 2.5 avatares de largura total.
+        assertThat(um).isGreaterThan(0)
+        assertThat(grupo).isLessThan(4 * um)
+        assertThat(grupo).isAtMost(3 * um)
+        assertThat(grupo).isAtLeast(2 * um)
+    }
+
+    @Test
+    fun `overlap zero coloca os avatares lado a lado`() {
+        setThemedContent {
+            Column {
+                MnsAvatar(name = "A A", size = 40.dp, modifier = Modifier.testTag("um"))
+                MnsAvatarGroup(
+                    names = participantes.take(2),
+                    max = 2,
+                    size = 40.dp,
+                    overlap = 0f,
+                    showOverflowCount = false,
+                    modifier = Modifier.testTag("grupo"),
+                )
+            }
+        }
+        val um = composeRule.onNodeWithTag("um").fetchSemanticsNode().size.width
+        assertThat(composeRule.onNodeWithTag("grupo").fetchSemanticsNode().size.width)
+            .isEqualTo(2 * um)
     }
 
     @Test

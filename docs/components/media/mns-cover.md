@@ -17,9 +17,10 @@ imagem inteira.
 
 | Parâmetro | Tipo | Padrão | Descrição |
 |---|---|---|---|
-| `painter` | `Painter?` | — | imagem a exibir. `null` mostra o placeholder de carregamento. |
+| `painter` | `Painter?` | — | imagem já carregada. `null` mostra o placeholder de shimmer. |
 | `contentDescription` | `String?` | — | descrição da imagem; `null` a marca como decorativa. |
 | `modifier` | `Modifier` | `Modifier` | `Modifier` aplicado ao nó raiz do componente. |
+| `imageUrl` | `String?` | `null` | capa remota. Tem precedência sobre `painter` e usa o mesmo shimmer como placeholder de carregamento. |
 | `height` | `Dp` | `MnsTheme.sizing.coverHeight` | altura da capa. |
 | `shape` | `Shape` | `MnsTheme.shapes.image` | Forma do componente. Use um papel de `MnsTheme.shapes`. |
 | `scrim` | `Boolean` | `false` | aplica gradiente escuro da base ao topo. |

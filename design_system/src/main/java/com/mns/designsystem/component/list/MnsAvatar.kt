@@ -4,8 +4,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
+import com.mns.designsystem.component.media.MnsAsyncImage
 import com.mns.designsystem.component.media.MnsIcon
 import com.mns.designsystem.component.text.MnsText
 import com.mns.designsystem.theme.MnsTheme
@@ -27,13 +28,16 @@ import kotlin.math.absoluteValue
 /**
  * Avatar de usuário ou entidade.
  *
- * Resolve o conteúdo em ordem de preferência: [painter] → [icon] → iniciais de
- * [name]. Ou seja, nunca renderiza vazio — o pior caso ainda mostra as iniciais
- * sobre uma cor derivada do nome, o que dá identidade estável ao usuário mesmo
- * sem foto.
+ * Resolve o conteúdo em ordem de preferência: [imageUrl] → [painter] → [icon] →
+ * iniciais de [name]. Ou seja, nunca renderiza vazio — o pior caso ainda mostra
+ * as iniciais sobre uma cor derivada do nome, o que dá identidade estável ao
+ * usuário mesmo sem foto. Uma URL que falha cai nas iniciais, não em um ícone
+ * de imagem quebrada.
  *
  * @param name nome usado para gerar iniciais e a cor de fundo determinística.
- * @param painter imagem do avatar, quando disponível.
+ * @param imageUrl foto remota. Tem precedência sobre [painter] e [icon]; se a
+ *   carga falhar, o avatar exibe as iniciais de [name].
+ * @param painter imagem do avatar já carregada, quando disponível.
  * @param icon ícone alternativo (ex.: entidade sem nome).
  * @param size diâmetro. Use `MnsTheme.sizing.avatar*`.
  * @param borderWidth anel externo — use em grupos sobrepostos para separar.
@@ -43,6 +47,7 @@ import kotlin.math.absoluteValue
 public fun MnsAvatar(
     name: String,
     modifier: Modifier = Modifier,
+    imageUrl: String? = null,
     painter: Painter? = null,
     icon: ImageVector? = null,
     size: Dp = MnsTheme.sizing.avatarMd,
@@ -68,6 +73,14 @@ public fun MnsAvatar(
         contentAlignment = Alignment.Center,
     ) {
         when {
+            imageUrl != null -> MnsAsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.size(size),
+                shape = shape,
+                fallback = { MnsAvatarIniciais(name, size, container, content) },
+            )
+
             painter != null -> Image(
                 painter = painter,
                 contentDescription = null,
@@ -85,20 +98,30 @@ public fun MnsAvatar(
                     tint = content,
                 )
             }
-            else -> Box(
-                modifier = Modifier
-                    .size(size)
-                    .clip(shape)
-                    .background(container),
-                contentAlignment = Alignment.Center,
-            ) {
-                MnsText(
-                    text = initialsOf(name),
-                    style = MnsTheme.typography.labelMedium.copy(fontSize = MnsTheme.typography.labelMedium.fontSize * (size.value / 40f)),
-                    color = content,
-                )
-            }
+            else -> MnsAvatarIniciais(name, size, container, content)
         }
+    }
+}
+
+/** Iniciais sobre a cor determinística — o último recurso de [MnsAvatar]. */
+@Composable
+private fun MnsAvatarIniciais(
+    name: String,
+    size: Dp,
+    container: Color,
+    content: Color,
+) {
+    Box(
+        modifier = Modifier.size(size).background(container),
+        contentAlignment = Alignment.Center,
+    ) {
+        MnsText(
+            text = initialsOf(name),
+            style = MnsTheme.typography.labelMedium.copy(
+                fontSize = MnsTheme.typography.labelMedium.fontSize * (size.value / 40f),
+            ),
+            color = content,
+        )
     }
 }
 
@@ -122,18 +145,23 @@ public fun MnsAvatarGroup(
     val colors = MnsTheme.colors
     val visible = names.take(max)
     val overflow = (names.size - visible.size).coerceAtLeast(0)
-    val step = size * (1f - overlap)
+
+    // Espaçamento negativo em vez de `offset` por filho: o `offset` é puramente
+    // visual, então a Row continuava medindo `n * size` e sobrava um vão à
+    // direita do grupo. Com `spacedBy` negativo a sobreposição entra na medição,
+    // e o componente ocupa exatamente o que desenha.
+    val recuo = size * overlap.coerceIn(0f, 0.9f)
 
     Row(
         modifier = modifier.clearAndSetSemantics {
             contentDescription = "${names.size} participantes"
         },
+        horizontalArrangement = Arrangement.spacedBy(-recuo),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        visible.forEachIndexed { index, name ->
+        visible.forEach { name ->
             MnsAvatar(
                 name = name,
-                modifier = Modifier.offset(x = -(step - size) * index),
                 size = size,
                 borderWidth = MnsTheme.borders.thick,
                 borderColor = colors.surface,
@@ -142,7 +170,6 @@ public fun MnsAvatarGroup(
         if (overflow > 0 && showOverflowCount) {
             Box(
                 modifier = Modifier
-                    .offset(x = -(step - size) * visible.size)
                     .size(size)
                     .clip(MnsTheme.shapes.avatar)
                     .border(MnsTheme.borders.thick, colors.surface, MnsTheme.shapes.avatar)

@@ -35,6 +35,11 @@ kotlinxCoroutines = "1.9.0"
 
 # Terceiros
 zxing = "3.5.3"
+# Carregamento de imagem remota. Coil 2.x é a linha Android/Compose: estável
+# desde 2024, com OkHttp embutido. Coil 3.x (multiplataforma) é o caminho de
+# atualização, mas exige artefato de rede separado — fica para quando a
+# toolchain subir. Ver docs/architecture.md.
+coil = "2.7.0"
 
 # Testes
 junit = "4.13.2"
@@ -83,6 +88,7 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 
 # ── Terceiros ────────────────────────────────────────────────────────────────
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 # ── Testes ───────────────────────────────────────────────────────────────────
 junit = { module = "junit:junit", version.ref = "junit" }

@@ -4,7 +4,7 @@
 
 [← Documentação](../README.md) · [Tokens](../tokens/README.md) · [Tematização](../theming.md) · [Design Contract](../design-contract.md)
 
-São **44 páginas** cobrindo todos os componentes públicos do `:design_system`. Cada página traz a descrição, quando usar, e a tabela completa de parâmetros com tipo, valor padrão e o que cada um faz.
+São **45 páginas** cobrindo todos os componentes públicos do `:design_system`. Cada página traz a descrição, quando usar, e a tabela completa de parâmetros com tipo, valor padrão e o que cada um faz.
 
 Todo componente listado aqui tem uma demonstração interativa no módulo `:app_demo` — abra o app, encontre-o pela aba da categoria e mexa nos parâmetros para ver o efeito em tempo real.
 
@@ -120,4 +120,5 @@ _Ícones e imagens._
 | Componente | Quando usar |
 |---|---|
 | [MnsIcon · MnsIcons](media/mns-icon.md) | Ícone que herda a cor da superfície, mais o conjunto próprio da lib. |
+| [MnsAsyncImage](media/mns-async-image.md) | Imagem remota com shimmer de carregamento e fallback tokenizados. |
 | [MnsCover](media/mns-cover.md) | Área de capa com placeholder shimmer, véu de legibilidade e overlay. |
