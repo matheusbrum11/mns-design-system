@@ -5,6 +5,17 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Alterado
+- Publicação passa a ser dirigida pela **Release do GitHub**: a tag é a fonte da
+  verdade da versão e nada precisa ser editado em `gradle.properties` antes de
+  publicar. `release.yml` valida versão, secrets, coordenadas e imutabilidade
+  antes de compilar; publica, espelha, anexa os artefatos à release e confirma a
+  sincronização com o `repo1.maven.org`.
+- Novo `snapshot.yml`: cada merge em `main` publica um `-SNAPSHOT`. Sem secrets
+  configurados ele avisa e segue verde, em vez de deixar a `main` vermelha.
+- `ci.yml` perdeu o gatilho de push em `main` — quem cobre a `main` é o snapshot,
+  que o chama. Elimina execução duplicada para o mesmo commit.
+
 ### Adicionado
 - `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
   fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e

@@ -1,20 +1,21 @@
 name: CI
 
-# Integração contínua: roda em todo pull request para `main` e em todo push
-# direto na própria `main`. É o portão que o merge precisa atravessar.
+# Integração contínua: o portão que todo pull request precisa atravessar.
+#
+# Não há gatilho de `push` em `main` de propósito. A `main` é coberta pelo
+# snapshot.yml, que chama este workflow como etapa de qualidade antes de
+# publicar — dois gatilhos para o mesmo commit só duplicariam o trabalho.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
-  workflow_call:        # reaproveitado pelo release.yml
+  workflow_call:        # reaproveitado por snapshot.yml e release.yml
   workflow_dispatch:
 
 # `github.workflow` entra no grupo de propósito: em workflow reutilizável ele
-# resolve para o nome do workflow CHAMADOR. Sem isso, um push em main dispara
-# ci.yml direto e release.yml (que chama ci.yml), as duas execuções caem no
-# mesmo grupo e uma cancela a outra — quando a cancelada é a do release, o job
-# `publicar` nunca roda e a versão não é publicada, sem erro visível.
+# resolve para o nome do workflow CHAMADOR. Sem isso, a execução chamada pelo
+# snapshot.yml e a chamada pelo release.yml para a mesma ref cairiam no mesmo
+# grupo e uma cancelaria a outra — e uma cancelada reprova o job que depende
+# dela, impedindo a publicação sem erro visível.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
