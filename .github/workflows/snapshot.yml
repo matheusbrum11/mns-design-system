@@ -82,8 +82,14 @@ jobs:
 
           echo "publicar=true" >> "$GITHUB_OUTPUT"
 
+      # `continue-on-error` de propósito: snapshot é conveniência, não portão.
+      # O job de qualidade já reprovou ou aprovou o commit antes daqui. Deixar a
+      # `main` vermelha porque o Sonatype recusou um snapshot esconderia falha
+      # real de código no histórico do branch — o resumo abaixo é que reporta.
       - name: Publicar o snapshot
+        id: publicacao
         if: steps.checagem.outputs.publicar == 'true'
+        continue-on-error: true
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -92,32 +98,68 @@ jobs:
           ./gradlew :design_system:publishToMavenCentral \
             --no-configuration-cache --stacktrace
 
+      # Reporta o que de fato aconteceu. Antes lia `checagem.outputs.publicar`,
+      # que diz apenas "a publicação foi tentada" — e por isso estampou
+      # "Snapshot publicado" num run em que a publicação falhou.
+      #
+      # `outcome` é o resultado real do passo; `conclusion` viria mascarado como
+      # `success` por causa do `continue-on-error`.
       - name: Resumo
         if: always()
         env:
           VERSAO: ${{ steps.checagem.outputs.versao }}
-          PUBLICOU: ${{ steps.checagem.outputs.publicar }}
+          GATE: ${{ steps.checagem.outputs.publicar }}
+          RESULTADO: ${{ steps.publicacao.outcome }}
         run: |
           GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
           ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
-          {
-            if [ "$PUBLICOU" = "true" ]; then
+          COORDENADA="$GRUPO:$ARTEFATO:$VERSAO"
+
+          if [ "$GATE" != "true" ]; then
+            {
+              echo "## Snapshot não publicado"
+              echo
+              echo "A qualidade passou; a publicação foi pulada de propósito."
+              echo "Consulte o passo *Conferir se dá para publicar* para o motivo."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$RESULTADO" = "success" ]; then
+            {
               echo "## Snapshot publicado"
               echo
-              echo "\`$GRUPO:$ARTEFATO:$VERSAO\`"
+              echo "\`$COORDENADA\`"
               echo
               echo '```kotlin'
               echo "repositories {"
               echo "    maven(\"https://central.sonatype.com/repository/maven-snapshots/\")"
               echo "}"
               echo "dependencies {"
-              echo "    implementation(\"$GRUPO:$ARTEFATO:$VERSAO\")"
+              echo "    implementation(\"$COORDENADA\")"
               echo "}"
               echo '```'
-            else
-              echo "## Snapshot não publicado"
-              echo
-              echo "A qualidade passou; a publicação foi pulada de propósito."
-              echo "Consulte o passo *Conferir se dá para publicar* para o motivo."
-            fi
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Falhou. O job segue verde porque a qualidade passou, mas o aviso
+          # precisa aparecer — e com o que olhar, não só "deu erro".
+          echo "::warning title=Snapshot nao publicado::$COORDENADA falhou ao subir. A qualidade passou; veja o resumo do run."
+          {
+            echo "## Snapshot não publicado"
+            echo
+            echo "A qualidade passou — o commit está bom. O que falhou foi só o"
+            echo "envio de \`$COORDENADA\` ao repositório de snapshots."
+            echo
+            echo "### Onde olhar"
+            echo
+            echo "O passo *Publicar o snapshot* traz o código HTTP da recusa:"
+            echo
+            echo "| Código | Significado | Causa provável |"
+            echo "|---|---|---|"
+            echo "| \`401\` | Autenticação falhou | User Token errado, trocado ou com espaço em branco |"
+            echo "| \`403\` | Autenticado, sem permissão | Namespace \`$GRUPO\` não registrado ou não verificado no Central Portal |"
+            echo
+            echo "Passo a passo em \`docs/ci-cd.md\`."
           } >> "$GITHUB_STEP_SUMMARY"
