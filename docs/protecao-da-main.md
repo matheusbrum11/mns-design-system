@@ -49,7 +49,7 @@ Selecione o arquivo `docs/rulesets/protecao-main.json` e confirme.
 export GH_TOKEN=...   # token com permissão Administration: read and write
 
 curl -X POST \
-  -H "Authorization: Bearer $GH_TOKEN" \
+  -u "${GH_TOKEN}:x-oauth-basic" \
   -H "Accept: application/vnd.github+json" \
   -H "Content-Type: application/json" \
   https://api.github.com/repos/matheusbrum11/mns-design-system/rulesets \

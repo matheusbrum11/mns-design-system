@@ -9,6 +9,9 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 - Ruleset versionado da `main` em `docs/rulesets/`, com CI obrigatória,
   proibição de push direto, revisão por CODEOWNERS (no ruleset completo) e
   nenhum ator de bypass. Documentado em `docs/protecao-da-main.md`.
+- `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
+  fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
+  `MnsCover`, mais `MnsListLeading.RemoteThumbnail`.
 
 - `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
   fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
