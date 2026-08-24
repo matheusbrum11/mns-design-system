@@ -1,5 +1,5 @@
 {
-  "name": "Protecao da main (sem revisor)",
+  "name": "Proteção da main (sem revisor)",
   "target": "branch",
   "enforcement": "active",
   "conditions": {

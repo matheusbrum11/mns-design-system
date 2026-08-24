@@ -64,7 +64,8 @@ e mídia.
 - **[CI/CD e publicação](ci-cd.md)** — a esteira, os *secrets* do GitHub
   Actions e o fluxo de release para o Maven Central.
 - **[Proteção da main](protecao-da-main.md)** — o ruleset versionado: CI
-  obrigatório, nenhum push direto e revisão por CODEOWNERS.
+  obrigatório, nenhum push direto e revisão por CODEOWNERS (no ruleset
+  completo).
 - **[Benchmark](benchmark.md)** — macrobenchmark de startup e de rolagem.
 - **[Assets](assets/README.md)** — como capturar e nomear os prints usados na
   documentação.

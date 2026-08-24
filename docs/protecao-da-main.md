@@ -14,8 +14,8 @@ Toda alteração precisa ser reimportada. O que ele garante:
 |---|---|
 | `pull_request` | **Nenhum push direto.** Todo código entra por PR — inclusive o do dono do repositório. |
 | `required_status_checks` | **Sem CI verde não há merge.** O check exigido é `Lint · Testes · Cobertura`. |
-| `required_approving_review_count` | Merge exige aprovação de outra pessoa com acesso de escrita. |
-| `require_code_owner_review` | A aprovação precisa vir de quem está no [`CODEOWNERS`](../.github/CODEOWNERS). |
+| `required_approving_review_count` | No ruleset completo, merge exige aprovação de outra pessoa com acesso de escrita. |
+| `require_code_owner_review` | No ruleset completo, a aprovação precisa vir de quem está no [`CODEOWNERS`](../.github/CODEOWNERS). |
 | `non_fast_forward` | Sem `push --force`: história reescrita apaga rastro de auditoria. |
 | `deletion` | A `main` não pode ser apagada. |
 | `bypass_actors: []` | **Vazio de propósito.** Ninguém contorna, nem administrador. É a diferença entre uma regra e uma sugestão. |
@@ -46,11 +46,12 @@ Selecione o arquivo `docs/rulesets/protecao-main.json` e confirme.
 ### Pela API
 
 ```bash
-export GH_TOKEN=...   # token com permissao Administration: read and write
+export GH_TOKEN=...   # token com permissão Administration: read and write
 
 curl -X POST \
   -H "Authorization: Bearer $GH_TOKEN" \
   -H "Accept: application/vnd.github+json" \
+  -H "Content-Type: application/json" \
   https://api.github.com/repos/matheusbrum11/mns-design-system/rulesets \
   -d @docs/rulesets/protecao-main.json
 ```

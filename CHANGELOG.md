@@ -7,8 +7,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Adicionado
 - Ruleset versionado da `main` em `docs/rulesets/`, com CI obrigatória,
-  proibição de push direto, revisão por CODEOWNERS e nenhum ator de bypass.
-  Documentado em `docs/protecao-da-main.md`.
+  proibição de push direto, revisão por CODEOWNERS (no ruleset completo) e
+  nenhum ator de bypass. Documentado em `docs/protecao-da-main.md`.
 
 ### Alterado
 - Publicação passa a ser dirigida pela **Release do GitHub**: a tag é a fonte da
