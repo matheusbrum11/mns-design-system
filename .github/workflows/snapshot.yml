@@ -1,0 +1,123 @@
+name: Snapshot
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Publica um snapshot a cada merge em `main`, para que consumidores possam
+#  testar o que ainda não virou release.
+#
+#  Diferença de postura em relação ao release.yml: aqui a publicação é uma
+#  conveniência, não um portão. Se os secrets ainda não existem, o job avisa e
+#  segue verde — deixar a `main` vermelha por causa de um snapshot esconderia
+#  falhas reais de código. Em release, secret faltando reprova.
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: snapshot-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
+
+jobs:
+  qualidade:
+    name: Qualidade
+    uses: ./.github/workflows/ci.yml
+
+  publicar:
+    name: Publicar snapshot
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Conferir se dá para publicar
+        id: checagem
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          set -euo pipefail
+          VERSAO=$(grep '^VERSION_NAME=' gradle.properties | cut -d'=' -f2-)
+          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+
+          # `gradle.properties` guarda a versão de desenvolvimento, que é sempre
+          # um snapshot. Se alguém deixou uma versão final ali, publicar daqui
+          # criaria uma release por acidente — e release é imutável.
+          if [[ "$VERSAO" != *-SNAPSHOT ]]; then
+            echo "::warning title=Versao nao e snapshot::VERSION_NAME=$VERSAO. Snapshots saem so de versoes -SNAPSHOT; releases saem do release.yml."
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$MAVEN_CENTRAL_USERNAME" ] || [ -z "$MAVEN_CENTRAL_PASSWORD" ]; then
+            echo "::notice title=Snapshot nao publicado::Secrets do Maven Central ainda nao configurados."
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "publicar=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar o snapshot
+        if: steps.checagem.outputs.publicar == 'true'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          # Snapshot não é assinado: o plugin só exige PGP fora de -SNAPSHOT.
+          ./gradlew :design_system:publishToMavenCentral \
+            --no-configuration-cache --stacktrace
+
+      - name: Resumo
+        if: always()
+        env:
+          VERSAO: ${{ steps.checagem.outputs.versao }}
+          PUBLICOU: ${{ steps.checagem.outputs.publicar }}
+        run: |
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
+          {
+            if [ "$PUBLICOU" = "true" ]; then
+              echo "## Snapshot publicado"
+              echo
+              echo "\`$GRUPO:$ARTEFATO:$VERSAO\`"
+              echo
+              echo '```kotlin'
+              echo "repositories {"
+              echo "    maven(\"https://central.sonatype.com/repository/maven-snapshots/\")"
+              echo "}"
+              echo "dependencies {"
+              echo "    implementation(\"$GRUPO:$ARTEFATO:$VERSAO\")"
+              echo "}"
+              echo '```'
+            else
+              echo "## Snapshot não publicado"
+              echo
+              echo "A qualidade passou; a publicação foi pulada de propósito."
+              echo "Consulte o passo *Conferir se dá para publicar* para o motivo."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

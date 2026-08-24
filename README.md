@@ -4,6 +4,7 @@ Design system Android em **Jetpack Compose** — 100% tokenizável, desacoplado 
 publicado como artefato Maven.
 
 [![CI](https://github.com/matheusbrum11/mns-design-system/actions/workflows/ci.yml/badge.svg)](https://github.com/matheusbrum11/mns-design-system/actions/workflows/ci.yml)
+[![Snapshot](https://github.com/matheusbrum11/mns-design-system/actions/workflows/snapshot.yml/badge.svg)](https://github.com/matheusbrum11/mns-design-system/actions/workflows/snapshot.yml)
 [![Release](https://github.com/matheusbrum11/mns-design-system/actions/workflows/release.yml/badge.svg)](https://github.com/matheusbrum11/mns-design-system/actions/workflows/release.yml)
 [![Cobertura](https://img.shields.io/badge/cobertura-96%25-brightgreen)](docs/testing.md)
 [![Licença](https://img.shields.io/badge/licen%C3%A7a-Apache%202.0-blue)](LICENSE)

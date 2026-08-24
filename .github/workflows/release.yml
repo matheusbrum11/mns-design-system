@@ -1,50 +1,199 @@
 name: Release
 
-# Entrega contínua: publica o artefato no Maven Central quando um merge entra
-# em `main`. A publicação só acontece depois de a bateria completa de qualidade
-# passar de novo — nada é publicado com base apenas no status do PR.
+# ─────────────────────────────────────────────────────────────────────────────
+#  Publicação dirigida pela Release do GitHub.
+#
+#  Criar uma release com a tag `v0.2.0` publica `0.2.0` no Maven Central e
+#  anexa os artefatos à própria release. A **tag é a fonte da verdade da
+#  versão** — não existe passo manual de editar `gradle.properties` antes de
+#  publicar, e por isso não existe o modo de falha "esqueci de subir a versão".
+#
+#  Versões `-SNAPSHOT` não passam por aqui: elas saem automaticamente a cada
+#  merge em `main`, pelo snapshot.yml.
+# ─────────────────────────────────────────────────────────────────────────────
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - '.github/**'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
+      version:
+        description: "Versão a publicar (ex.: 0.2.0). Vazio = usa a tag da release."
+        required: false
+        type: string
       dry_run:
-        description: 'Executa tudo sem publicar de verdade'
+        description: "Ensaio: valida e empacota, sem publicar nada"
         type: boolean
         default: false
 
+permissions:
+  contents: write   # anexar artefatos à release
+  packages: write   # espelho no GitHub Packages
+
+# Duas releases nunca publicam ao mesmo tempo, e uma em andamento jamais é
+# cancelada: interromper no meio do upload deixaria um deployment pendurado.
 concurrency:
-  group: release
+  group: release-${{ github.event.release.tag_name || inputs.version || github.ref }}
   cancel-in-progress: false
 
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false
 
 jobs:
-  # Reaproveita a esteira de CI inteira. Publicar sem revalidar seria confiar
-  # que nada mudou entre o último check do PR e o estado real de `main`.
-  qualidade:
-    name: Qualidade
-    uses: ./.github/workflows/ci.yml
-
-  publicar:
-    name: Publicar no Maven Central
-    needs: qualidade
+  # ───────────────────────────────────────────────────────────────────────────
+  #  1. Tudo que dá para reprovar sem compilar nada.
+  # ───────────────────────────────────────────────────────────────────────────
+  validar:
+    name: Validar release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: write     # criar a tag e a GitHub Release
-      packages: write     # espelho no GitHub Packages
-
+    timeout-minutes: 10
+    outputs:
+      versao: ${{ steps.versao.outputs.versao }}
+      tag: ${{ steps.versao.outputs.tag }}
+      coordenada: ${{ steps.versao.outputs.coordenada }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Derivar e validar a versão
+        id: versao
+        env:
+          TAG_RELEASE: ${{ github.event.release.tag_name }}
+          VERSAO_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${VERSAO_INPUT:-}" ]; then
+            VERSAO="$VERSAO_INPUT"
+            TAG="v$VERSAO"
+          elif [ -n "${TAG_RELEASE:-}" ]; then
+            TAG="$TAG_RELEASE"
+            VERSAO="${TAG_RELEASE#v}"
+          else
+            echo "::error title=Sem versao::Dispare a partir de uma release publicada ou informe o input 'version'."
+            exit 1
+          fi
+
+          # Semver, e explicitamente sem -SNAPSHOT: snapshot é território do
+          # snapshot.yml e nunca deve virar uma release imutável.
+          if ! [[ "$VERSAO" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error title=Versao invalida::'$VERSAO' nao e semver. Use a tag no formato vX.Y.Z."
+            exit 1
+          fi
+          if [[ "$VERSAO" == *SNAPSHOT* ]]; then
+            echo "::error title=Snapshot em release::'$VERSAO' e um snapshot. Releases publicam versoes finais."
+            exit 1
+          fi
+
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
+
+          {
+            echo "versao=$VERSAO"
+            echo "tag=$TAG"
+            echo "coordenada=$GRUPO:$ARTEFATO:$VERSAO"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Publicando $GRUPO:$ARTEFATO:$VERSAO (tag $TAG)"
+
+      - name: Conferir coordenadas e secrets
+        if: ${{ !inputs.dry_run }}
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          erros=()
+
+          # O Central Portal verifica o namespace `io.github.<conta>` contra a
+          # posse daquela conta no GitHub. GROUP apontando para outra conta é
+          # recusa certa — e o espelho no GitHub Packages falha junto.
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          DONO="${GITHUB_REPOSITORY%%/*}"
+          if [[ "$GRUPO" == io.github.* ]]; then
+            CONTA="${GRUPO#io.github.}"
+            [ "$CONTA" = "$DONO" ] || erros+=("GROUP=$GRUPO nao corresponde ao dono do repositorio ($DONO)")
+          fi
+
+          # Um secret inexistente NAO some do ambiente: o GitHub injeta string
+          # vazia. Por isso o teste e de conteudo, nao de existencia.
+          [ -n "$MAVEN_CENTRAL_USERNAME" ] || erros+=("secret MAVEN_CENTRAL_USERNAME ausente ou vazio")
+          [ -n "$MAVEN_CENTRAL_PASSWORD" ] || erros+=("secret MAVEN_CENTRAL_PASSWORD ausente ou vazio")
+          [ -n "$SIGNING_KEY" ]            || erros+=("secret SIGNING_KEY ausente ou vazio")
+          [ -n "$SIGNING_KEY_ID" ]         || erros+=("secret SIGNING_KEY_ID ausente ou vazio")
+          [ -n "$SIGNING_PASSWORD" ]       || erros+=("secret SIGNING_PASSWORD ausente ou vazio")
+
+          if [ ${#erros[@]} -eq 0 ]; then
+            echo "Coordenadas e secrets conferidos."
+            exit 0
+          fi
+
+          for e in "${erros[@]}"; do echo "::error title=Publicacao abortada::$e"; done
+          {
+            echo "## Publicação abortada"
+            echo
+            echo "A esteira parou **antes** de compilar, para não falhar com um"
+            echo "\`401 Unauthorized\` vindo de dentro do Gradle."
+            echo
+            for e in "${erros[@]}"; do echo "- $e"; done
+            echo
+            echo "Configure em **Settings → Secrets and variables → Actions**."
+            echo "Detalhes em \`docs/ci-cd.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      # Versão no Maven Central é imutável: republicar a mesma coordenada é
+      # recusado pelo portal, e descobrir isso depois de compilar é desperdício.
+      - name: Conferir se a versão já existe no Maven Central
+        env:
+          VERSAO: ${{ steps.versao.outputs.versao }}
+        run: |
+          set -euo pipefail
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
+          CAMINHO="${GRUPO//.//}/$ARTEFATO/$VERSAO"
+          URL="https://repo1.maven.org/maven2/$CAMINHO/"
+
+          CODIGO=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$URL" || echo "000")
+          echo "GET $URL -> $CODIGO"
+
+          if [ "$CODIGO" = "200" ]; then
+            echo "::error title=Versao ja publicada::$GRUPO:$ARTEFATO:$VERSAO ja existe no Maven Central e e imutavel."
+            {
+              echo "## Versão já publicada"
+              echo
+              echo "\`$GRUPO:$ARTEFATO:$VERSAO\` já está no Maven Central, que é imutável."
+              echo "Corte uma release nova com a versão seguinte."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Versão disponível."
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  2. A mesma bateria de qualidade dos PRs. Publicar sem revalidar seria
+  #     confiar que nada mudou entre o último check e o estado real da tag.
+  # ───────────────────────────────────────────────────────────────────────────
+  qualidade:
+    name: Qualidade
+    needs: validar
+    uses: ./.github/workflows/ci.yml
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  3. Publicação.
+  # ───────────────────────────────────────────────────────────────────────────
+  publicar:
+    name: Publicar
+    needs: [validar, qualidade]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VERSAO: ${{ needs.validar.outputs.versao }}
+      TAG: ${{ needs.validar.outputs.tag }}
+      COORDENADA: ${{ needs.validar.outputs.coordenada }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configurar JDK 17
         uses: actions/setup-java@v4
@@ -58,104 +207,9 @@ jobs:
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Ler a versão
-        id: versao
-        run: |
-          VERSAO=$(grep '^VERSION_NAME=' gradle.properties | cut -d'=' -f2)
-          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
-          if [[ "$VERSAO" == *SNAPSHOT ]]; then
-            echo "snapshot=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "snapshot=false" >> "$GITHUB_OUTPUT"
-          fi
-          echo "Versão a publicar: $VERSAO"
-
-      # Falha cedo, com mensagem legível, quando falta configuração. Sem isto o
-      # problema só aparece lá na frente: um secret vazio vira "401 Unauthorized"
-      # vindo de dentro do Gradle, depois de compilar o projeto inteiro.
-      #
-      # Um secret inexistente NÃO some do ambiente — o GitHub o injeta como
-      # string vazia. Por isso o teste é de conteúdo (`-n`), não de existência.
-      - name: Conferir coordenadas e secrets de publicação
-        if: ${{ !inputs.dry_run }}
-        env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-          EH_SNAPSHOT: ${{ steps.versao.outputs.snapshot }}
-        run: |
-          erros=()
-
-          # ── Coordenadas ──────────────────────────────────────────────────
-          # O Central Portal verifica o namespace `io.github.<conta>` contra a
-          # posse daquela conta no GitHub. Se o GROUP apontar para outra conta,
-          # a publicação é recusada — e o espelho no GitHub Packages também.
-          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
-          DONO="${GITHUB_REPOSITORY%%/*}"
-          if [[ "$GRUPO" == io.github.* ]]; then
-            CONTA="${GRUPO#io.github.}"
-            if [ "$CONTA" != "$DONO" ]; then
-              erros+=("GROUP=$GRUPO nao corresponde ao dono do repositorio ($DONO)")
-            fi
-          fi
-
-          # ── Credenciais do Central Portal (snapshot e release) ───────────
-          [ -n "$MAVEN_CENTRAL_USERNAME" ] || erros+=("secret MAVEN_CENTRAL_USERNAME ausente ou vazio")
-          [ -n "$MAVEN_CENTRAL_PASSWORD" ] || erros+=("secret MAVEN_CENTRAL_PASSWORD ausente ou vazio")
-
-          # ── Assinatura PGP (o plugin so exige fora de -SNAPSHOT) ─────────
-          if [ "$EH_SNAPSHOT" = "false" ]; then
-            [ -n "$SIGNING_KEY" ]      || erros+=("secret SIGNING_KEY ausente ou vazio")
-            [ -n "$SIGNING_KEY_ID" ]   || erros+=("secret SIGNING_KEY_ID ausente ou vazio")
-            [ -n "$SIGNING_PASSWORD" ] || erros+=("secret SIGNING_PASSWORD ausente ou vazio")
-          fi
-
-          if [ ${#erros[@]} -eq 0 ]; then
-            echo "Coordenadas e secrets conferidos."
-            exit 0
-          fi
-
-          for e in "${erros[@]}"; do
-            echo "::error title=Publicacao abortada::$e"
-          done
-
-          {
-            echo "## Publicação abortada"
-            echo
-            echo "A esteira parou **antes** de tentar publicar, para não falhar"
-            echo "com um \`401 Unauthorized\` depois de compilar tudo."
-            echo
-            for e in "${erros[@]}"; do echo "- $e"; done
-            echo
-            echo "### Como resolver"
-            echo
-            echo "1. Registre e verifique o namespace \`$GRUPO\` em central.sonatype.com."
-            echo "2. Gere um **User Token** (View Account → Generate User Token) e"
-            echo "   crie os secrets em *Settings → Secrets and variables → Actions*."
-            echo "   O login antigo do OSSRH não funciona no Central Portal."
-            echo "3. Detalhes em \`docs/ci-cd.md\`."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          exit 1
-
-      - name: Verificar se a tag já existe
-        if: steps.versao.outputs.snapshot == 'false'
-        run: |
-          if git rev-parse "v${{ steps.versao.outputs.versao }}" >/dev/null 2>&1; then
-            echo "::error::A tag v${{ steps.versao.outputs.versao }} já existe. Atualize VERSION_NAME em gradle.properties."
-            exit 1
-          fi
-
-      # As credenciais chegam ao Gradle como propriedades de projeto: o plugin
-      # com.vanniktech.maven.publish lê `mavenCentralUsername`/`mavenCentralPassword`
-      # e as chaves de assinatura em memória, e o Gradle mapeia qualquer
-      # ORG_GRADLE_PROJECT_<nome> para a propriedade <nome>.
-      #
-      # IMPORTANTE: MAVEN_CENTRAL_USERNAME/PASSWORD precisam ser um **User Token**
-      # gerado em central.sonatype.com (View Account → Generate User Token), e não
-      # o login antigo do OSSRH — o Central Portal recusa credenciais de conta.
+      # `publishToMavenCentral` sobe o bundle e, por causa de
+      # `publishToMavenCentral(automaticRelease = true)` no build, já dispara a
+      # liberação. Falha o build se a validação do portal reprovar.
       - name: Publicar no Maven Central
         if: ${{ !inputs.dry_run }}
         env:
@@ -165,11 +219,8 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          # `publishToMavenCentral` já dispara a liberação porque o build declara
-          # `publishToMavenCentral(automaticRelease = true)`. Não existe mais passo
-          # manual de curl na Staging API: o plugin faz upload e release em uma
-          # transação só, e falha o build se a validação do portal reprovar.
           ./gradlew :design_system:publishToMavenCentral \
+            -PVERSION_NAME="$VERSAO" \
             --no-configuration-cache --stacktrace
 
       - name: Espelhar no GitHub Packages
@@ -183,31 +234,131 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           ./gradlew :design_system:publishAllPublicationsToGithubPackagesRepository \
+            -PVERSION_NAME="$VERSAO" \
             --no-configuration-cache --stacktrace
 
+      # Ensaio: empacota localmente, sem rede e sem chave, para conferir que o
+      # bundle sai completo. Só roda quando `dry_run` é marcado.
       - name: Ensaio (dry run)
         if: ${{ inputs.dry_run }}
         run: |
-          # Sem rede e sem assinatura: força uma versão -SNAPSHOT para que o
-          # plugin dispense a chave PGP e publica no repositório Maven local.
           ./gradlew :design_system:publishToMavenLocal \
-            -PVERSION_NAME=0.0.0-dryrun-SNAPSHOT --stacktrace
-          echo "Ensaio concluído. Conteúdo empacotado:"
-          find ~/.m2/repository/io/github/matheusbrum11/mns-design-system/0.0.0-dryrun-SNAPSHOT \
-            -type f | sed 's|^|  |'
+            -PVERSION_NAME="$VERSAO-dryrun-SNAPSHOT" --stacktrace
 
-      - name: Criar tag e GitHub Release
-        if: ${{ !inputs.dry_run && steps.versao.outputs.snapshot == 'false' }}
+      - name: Reunir os artefatos
+        id: artefatos
+        run: |
+          set -euo pipefail
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
+
+          # Em release, o plugin monta o bundle neste diretório antes de subir —
+          # são exatamente os bytes enviados ao Central Portal.
+          ORIGEM="design_system/build/publishing/mavenCentral/${GRUPO//.//}/$ARTEFATO/$VERSAO"
+          if [ ! -d "$ORIGEM" ]; then
+            ORIGEM="$HOME/.m2/repository/${GRUPO//.//}/$ARTEFATO/$VERSAO-dryrun-SNAPSHOT"
+          fi
+
+          if [ ! -d "$ORIGEM" ]; then
+            echo "::warning::Nenhum diretorio de artefatos encontrado; nada a anexar."
+            echo "encontrou=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mkdir -p artefatos
+          find "$ORIGEM" -maxdepth 1 -type f \
+            \( -name '*.aar' -o -name '*.jar' -o -name '*.pom' -o -name '*.module' \) \
+            -exec cp {} artefatos/ \;
+
+          echo "encontrou=true" >> "$GITHUB_OUTPUT"
+          echo "Artefatos reunidos:"
+          ls -lh artefatos | tail -n +2 | awk '{print "  " $9 "  " $5}'
+
+      - name: Guardar os artefatos no run
+        if: steps.artefatos.outputs.encontrou == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mns-design-system-${{ env.VERSAO }}
+          path: artefatos/
+          retention-days: 90
+
+      # Anexa o AAR, os jars de sources e javadoc e o POM à própria release,
+      # para quem quiser baixar sem passar por um repositório Maven.
+      - name: Anexar os artefatos à release
+        if: ${{ !inputs.dry_run && github.event_name == 'release' && steps.artefatos.outputs.encontrou == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSAO="${{ steps.versao.outputs.versao }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v$VERSAO" -m "MNS Design System v$VERSAO"
-          git push origin "v$VERSAO"
-          gh release create "v$VERSAO" \
-            --title "v$VERSAO" \
-            --notes "Publicado como \`io.github.matheusbrum11:mns-design-system:$VERSAO\`.
+          gh release upload "$TAG" artefatos/* --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Artefatos anexados à release $TAG."
 
-          Consulte o [CHANGELOG](CHANGELOG.md) para o detalhamento das mudanças."
+      - name: Resumo
+        if: always()
+        run: |
+          {
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "## Ensaio concluído"
+              echo
+              echo "Nada foi publicado. Coordenada validada: \`$COORDENADA\`."
+            else
+              echo "## Publicado"
+              echo
+              echo "| | |"
+              echo "|---|---|"
+              echo "| Coordenada | \`$COORDENADA\` |"
+              echo "| Tag | \`$TAG\` |"
+              echo "| Maven Central | https://central.sonatype.com/artifact/${COORDENADA%:*} |"
+              echo
+              echo '```kotlin'
+              echo "implementation(\"$COORDENADA\")"
+              echo '```'
+              echo
+              echo "A sincronização com o \`repo1.maven.org\` costuma levar de 10 a 30 minutos."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  #  4. Confirma que o artefato apareceu de verdade. Informativo: o Central
+  #     costuma levar dezenas de minutos para sincronizar, então não reprova
+  #     a release se ainda não apareceu.
+  # ───────────────────────────────────────────────────────────────────────────
+  verificar:
+    name: Verificar no Maven Central
+    needs: [validar, publicar]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Aguardar a sincronização
+        env:
+          VERSAO: ${{ needs.validar.outputs.versao }}
+          COORDENADA: ${{ needs.validar.outputs.coordenada }}
+        run: |
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          ARTEFATO=$(grep '^POM_ARTIFACT_ID=' gradle.properties | cut -d'=' -f2-)
+          URL="https://repo1.maven.org/maven2/${GRUPO//.//}/$ARTEFATO/$VERSAO/$ARTEFATO-$VERSAO.pom"
+
+          for tentativa in $(seq 1 30); do
+            CODIGO=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$URL" || echo "000")
+            echo "[$tentativa/30] $CODIGO  $URL"
+            if [ "$CODIGO" = "200" ]; then
+              echo "::notice title=Disponivel::$COORDENADA ja resolve no Maven Central."
+              echo "## Disponível no Maven Central" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "\`$COORDENADA\` já resolve em \`repo1.maven.org\`." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 60
+          done
+
+          echo "::warning title=Ainda sincronizando::Nao apareceu em 30 minutos. Isso e normal; confira em central.sonatype.com."
+          {
+            echo "## Ainda sincronizando"
+            echo
+            echo "A publicação foi aceita, mas \`$COORDENADA\` ainda não resolve em"
+            echo "\`repo1.maven.org\` após 30 minutos. Costuma ser só demora de"
+            echo "propagação — acompanhe em central.sonatype.com."
+          } >> "$GITHUB_STEP_SUMMARY"
