@@ -1,0 +1,28 @@
+# Donos de código — quem precisa aprovar antes do merge.
+#
+# O ruleset `docs/rulesets/protecao-main.json` liga `require_code_owner_review`,
+# então todo PR
+# exige aprovação de alguém listado aqui.
+#
+# ATENÇÃO: ninguém aprova o próprio PR no GitHub. Se esta lista contiver apenas
+# você, os seus PRs ficam sem caminho para o merge. Ela precisa de pelo menos
+# uma pessoa além de quem abre o PR, com acesso de **escrita** no repositório
+# (Settings → Collaborators) — aprovação de quem só tem leitura não conta.
+#
+# Enquanto o projeto for de uma pessoa só, use o ruleset
+# `docs/rulesets/protecao-main-sem-revisor.json`, que mantém CI obrigatório e proíbe push
+# direto, sem exigir revisor.
+
+# Padrão: tudo no repositório.
+*                                   @matheusbrum11
+
+# Superfícies que merecem revisor específico quando o time crescer.
+# A API pública da biblioteca é contrato com quem consome — quebrar aqui
+# quebra o app dos outros.
+# /design_system/src/main/           @matheusbrum11 @outro-engenheiro
+
+# A esteira decide o que vai para produção.
+# /.github/                          @matheusbrum11 @outro-engenheiro
+
+# Quando o repositório virar de uma organização, troque os usuários por times:
+# *                                  @minha-org/engenharia

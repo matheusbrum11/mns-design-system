@@ -20,6 +20,7 @@ publicado como artefato Maven**.
 | Rodar o projeto e os testes | [Testes e qualidade](testing.md) |
 | Contribuir | [Guia de contribuição](../CONTRIBUTING.md) |
 | Publicar uma versão | [CI/CD e publicação](ci-cd.md) |
+| Entender as regras da `main` | [Proteção da main](protecao-da-main.md) |
 | Medir performance | [Benchmark](benchmark.md) |
 
 ---
@@ -62,6 +63,8 @@ e mídia.
   régua de **90% de cobertura de integração**.
 - **[CI/CD e publicação](ci-cd.md)** — a esteira, os *secrets* do GitHub
   Actions e o fluxo de release para o Maven Central.
+- **[Proteção da main](protecao-da-main.md)** — o ruleset versionado: CI
+  obrigatório, nenhum push direto e revisão por CODEOWNERS.
 - **[Benchmark](benchmark.md)** — macrobenchmark de startup e de rolagem.
 - **[Assets](assets/README.md)** — como capturar e nomear os prints usados na
   documentação.

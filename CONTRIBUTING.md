@@ -290,6 +290,12 @@ chore(ci): fixa a versão do runner
 - Print (claro e escuro) para mudança visual.
 - Menção explícita a qualquer quebra de API pública.
 
+### Regras da `main`
+
+A `main` é protegida por [ruleset](docs/protecao-da-main.md): nenhum push direto,
+CI verde obrigatória e aprovação de um CODEOWNER. Vale para todo mundo — a lista
+de quem contorna está vazia de propósito.
+
 ### O que a CI vai cobrar
 
 | Verificação | Comando |
