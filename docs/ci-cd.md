@@ -63,7 +63,7 @@ Três workflows, um gatilho cada, sem sobreposição:
 | Workflow | Gatilho | O que faz |
 |---|---|---|
 | `ci.yml` | pull request, ou chamado | Portão de qualidade. Não tem gatilho de push em `main`: quem cobre a `main` é o snapshot, que o chama. |
-| `snapshot.yml` | push em `main` | Qualidade + publica `X.Y.Z-SNAPSHOT`. |
+| `snapshot.yml` | push em `main` | Qualidade + publica `X.Y.Z-SNAPSHOT`. A publicação **não reprova o job**: snapshot é conveniência, e uma `main` vermelha por causa dele esconderia falha real de código. Quando falha, sai um aviso com o código HTTP e o que checar. |
 | `release.yml` | **release publicada** no GitHub | Qualidade + publica a versão final, anexa os artefatos à release e confirma a sincronização. |
 
 ---

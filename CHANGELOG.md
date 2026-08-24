@@ -13,6 +13,10 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   sincronização com o `repo1.maven.org`.
 - Novo `snapshot.yml`: cada merge em `main` publica um `-SNAPSHOT`. Sem secrets
   configurados ele avisa e segue verde, em vez de deixar a `main` vermelha.
+- `snapshot.yml`: a publicação deixou de reprovar o job. A qualidade continua
+  sendo o portão; snapshot recusado vira aviso com o código HTTP e o que checar.
+  O resumo passou a refletir o resultado real do envio — antes lia a decisão do
+  gate e chegou a estampar "Snapshot publicado" num run em que falhou.
 - `ci.yml` perdeu o gatilho de push em `main` — quem cobre a `main` é o snapshot,
   que o chama. Elimina execução duplicada para o mesmo commit.
 
