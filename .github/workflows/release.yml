@@ -70,6 +70,76 @@ jobs:
           fi
           echo "Versão a publicar: $VERSAO"
 
+      # Falha cedo, com mensagem legível, quando falta configuração. Sem isto o
+      # problema só aparece lá na frente: um secret vazio vira "401 Unauthorized"
+      # vindo de dentro do Gradle, depois de compilar o projeto inteiro.
+      #
+      # Um secret inexistente NÃO some do ambiente — o GitHub o injeta como
+      # string vazia. Por isso o teste é de conteúdo (`-n`), não de existência.
+      - name: Conferir coordenadas e secrets de publicação
+        if: ${{ !inputs.dry_run }}
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          EH_SNAPSHOT: ${{ steps.versao.outputs.snapshot }}
+        run: |
+          erros=()
+
+          # ── Coordenadas ──────────────────────────────────────────────────
+          # O Central Portal verifica o namespace `io.github.<conta>` contra a
+          # posse daquela conta no GitHub. Se o GROUP apontar para outra conta,
+          # a publicação é recusada — e o espelho no GitHub Packages também.
+          GRUPO=$(grep '^GROUP=' gradle.properties | cut -d'=' -f2-)
+          DONO="${GITHUB_REPOSITORY%%/*}"
+          if [[ "$GRUPO" == io.github.* ]]; then
+            CONTA="${GRUPO#io.github.}"
+            if [ "$CONTA" != "$DONO" ]; then
+              erros+=("GROUP=$GRUPO nao corresponde ao dono do repositorio ($DONO)")
+            fi
+          fi
+
+          # ── Credenciais do Central Portal (snapshot e release) ───────────
+          [ -n "$MAVEN_CENTRAL_USERNAME" ] || erros+=("secret MAVEN_CENTRAL_USERNAME ausente ou vazio")
+          [ -n "$MAVEN_CENTRAL_PASSWORD" ] || erros+=("secret MAVEN_CENTRAL_PASSWORD ausente ou vazio")
+
+          # ── Assinatura PGP (o plugin so exige fora de -SNAPSHOT) ─────────
+          if [ "$EH_SNAPSHOT" = "false" ]; then
+            [ -n "$SIGNING_KEY" ]      || erros+=("secret SIGNING_KEY ausente ou vazio")
+            [ -n "$SIGNING_KEY_ID" ]   || erros+=("secret SIGNING_KEY_ID ausente ou vazio")
+            [ -n "$SIGNING_PASSWORD" ] || erros+=("secret SIGNING_PASSWORD ausente ou vazio")
+          fi
+
+          if [ ${#erros[@]} -eq 0 ]; then
+            echo "Coordenadas e secrets conferidos."
+            exit 0
+          fi
+
+          for e in "${erros[@]}"; do
+            echo "::error title=Publicacao abortada::$e"
+          done
+
+          {
+            echo "## Publicação abortada"
+            echo
+            echo "A esteira parou **antes** de tentar publicar, para não falhar"
+            echo "com um \`401 Unauthorized\` depois de compilar tudo."
+            echo
+            for e in "${erros[@]}"; do echo "- $e"; done
+            echo
+            echo "### Como resolver"
+            echo
+            echo "1. Registre e verifique o namespace \`$GRUPO\` em central.sonatype.com."
+            echo "2. Gere um **User Token** (View Account → Generate User Token) e"
+            echo "   crie os secrets em *Settings → Secrets and variables → Actions*."
+            echo "   O login antigo do OSSRH não funciona no Central Portal."
+            echo "3. Detalhes em \`docs/ci-cd.md\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit 1
+
       - name: Verificar se a tag já existe
         if: steps.versao.outputs.snapshot == 'false'
         run: |
