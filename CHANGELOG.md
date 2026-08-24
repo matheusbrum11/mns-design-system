@@ -5,6 +5,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
 
+### Adicionado
+- Ruleset versionado da `main` em `docs/rulesets/`, com CI obrigatória,
+  proibição de push direto, revisão por CODEOWNERS (no ruleset completo) e
+  nenhum ator de bypass. Documentado em `docs/protecao-da-main.md`.
+- `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
+  fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
+  `MnsCover`, mais `MnsListLeading.RemoteThumbnail`.
+
+- `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
+  fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
+  `MnsCover`, mais `MnsListLeading.RemoteThumbnail`.
+
+
 ### Alterado
 - Publicação passa a ser dirigida pela **Release do GitHub**: a tag é a fonte da
   verdade da versão e nada precisa ser editado em `gradle.properties` antes de
@@ -19,11 +32,6 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
   gate e chegou a estampar "Snapshot publicado" num run em que falhou.
 - `ci.yml` perdeu o gatilho de push em `main` — quem cobre a `main` é o snapshot,
   que o chama. Elimina execução duplicada para o mesmo commit.
-
-### Adicionado
-- `MnsAsyncImage`: carregamento de imagem remota com shimmer de placeholder e
-  fallback, sobre Coil. Sobrecargas por URL em `MnsIcon`, `MnsAvatar` e
-  `MnsCover`, mais `MnsListLeading.RemoteThumbnail`.
 
 ### Corrigido
 - `MnsAvatarGroup` espalhava os avatares em vez de sobrepô-los: o deslocamento
